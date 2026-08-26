@@ -1,0 +1,13 @@
+# The example is read as much as it is compiled: it inherits the package
+# contract but skips the rules that add ceremony without teaching anything.
+include: ../analysis_options.yaml
+
+analyzer:
+  errors:
+    public_member_api_docs: ignore
+
+linter:
+  rules:
+    public_member_api_docs: false
+    prefer_const_literals_to_create_immutables: false
+    avoid_print: false

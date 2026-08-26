@@ -1,0 +1,12 @@
+# Benchmarks are held to the repository contract, minus the rules that only
+# make sense for a published API surface. The suites are data, not a library.
+include: ../../analysis_options.yaml
+
+analyzer:
+  errors:
+    public_member_api_docs: ignore
+
+linter:
+  rules:
+    public_member_api_docs: false
+    avoid_print: false

@@ -1,0 +1,32 @@
+name: agentic_benchmark
+description: >-
+  Micro-benchmarks for the agentic framework, with baseline comparison so a
+  performance regression shows up as a number rather than as a feeling.
+version: 0.1.0
+# Never published: this is a measuring instrument for the repository, not a
+# library anybody depends on.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  agentic_agents: ^0.1.0
+  agentic_core: ^0.1.0
+  agentic_llm: ^0.1.0
+  agentic_mcp: ^0.1.0
+  agentic_memory: ^0.1.0
+  agentic_rag: ^0.1.0
+  agentic_tools: ^0.1.0
+  agentic_vector: ^0.1.0
+  agentic_workflow: ^0.1.0
+  meta: ^1.16.0
+
+executables:
+  api_snapshot:
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2

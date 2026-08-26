@@ -1,0 +1,38 @@
+name: agentic_core
+description: >-
+  Foundation layer of the agentic framework for Dart and Flutter: immutable
+  message and content models, JSON Schema, a structured error hierarchy,
+  cancellation, retry and circuit-breaker policies, a typed event bus, and
+  structured logging and tracing. Pure Dart, no Flutter dependency.
+version: 0.1.0
+repository: https://github.com/v1j4yk/agentic_flutter
+issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
+documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_core/README.md
+topics:
+  - ai
+  - agents
+  - llm
+  - agentic
+  - workflow
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  # `meta` supplies the annotations that make the immutable/sealed contracts of
+  # this package machine-checkable. `collection` supplies deep equality, which
+  # every value object here needs. Nothing else earns a place in the foundation
+  # layer: every transitive dependency added here is inherited by every package
+  # and every application that ever uses the framework.
+  collection: ^1.19.0
+  # Floored at what we actually use (`@immutable`, `@protected`,
+  # `@visibleForTesting`) rather than at the newest release. The Flutter SDK
+  # pins `meta` to the version it ships, so a tighter floor here would make the
+  # package unusable from a Flutter app — which is the one thing it must not be.
+  meta: ^1.16.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2

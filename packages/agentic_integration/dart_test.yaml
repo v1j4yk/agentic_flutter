@@ -1,0 +1,14 @@
+# The provider suite is gated in the test file itself, on an explicit opt-in
+# (`AGENTIC_INTEGRATION=1`) *and* credentials — see `conformance_test.dart`.
+#
+# A tag-based exclusion was the obvious mechanism and is the wrong one twice
+# over: `--tags integration` cannot override a config `exclude_tags`, and a gate
+# on credentials alone would spend a contributor's money the first time they ran
+# `dart test` with a key exported in their shell.
+#
+#   dart test                                 the harness's own tests
+#   AGENTIC_INTEGRATION=1 OPENAI_API_KEY=… dart test    the real thing
+tags:
+  integration:
+    # Real providers are slow, and a cold model can take a minute to answer.
+    timeout: 10x

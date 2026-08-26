@@ -1,0 +1,32 @@
+name: create_agentic_app
+description: >-
+  Generates a working Flutter app built on the agentic framework: a chat screen,
+  a tool, human approval, a trace panel, and an API key kept out of the source.
+version: 0.1.0
+repository: https://github.com/v1j4yk/agentic_flutter
+issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
+documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/create_agentic_app/README.md
+topics:
+  - ai
+  - agents
+  - flutter
+  - template
+  - agentic
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+# Deliberately none. This writes files; it does not use the framework, which is
+# what lets it be published and installed before the framework itself is, and
+# what keeps `pub global activate` from pulling a dozen packages onto a machine
+# that only wants a scaffold.
+dependencies:
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2
+
+executables:
+  create_agentic_app:

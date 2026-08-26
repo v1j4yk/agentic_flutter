@@ -1,0 +1,35 @@
+# Dart / Flutter
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+!packages/*/example/pubspec.lock
+doc/api/
+coverage/
+*.log
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.iws
+.DS_Store
+
+# Melos writes these per package; they are generated and must stay out.
+pubspec_overrides.yaml
+# Except this one, which is written by hand and is the only way a fresh clone
+# can resolve `agentic_flutter` — it is not a workspace member (see the root
+# pubspec for why), so its nine siblings are reached by path until they are
+# published. Ignoring it makes `flutter pub get` fail for everyone but us.
+!packages/agentic_flutter/pubspec_overrides.yaml
+.melos_tool/
+
+# Secrets — never commit provider keys
+.env
+.env.*
+!.env.example
+
+# Scratch output of `melos run template:check`.
+.template_probe/

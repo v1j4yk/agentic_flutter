@@ -1,0 +1,4 @@
+# agentic_core inherits the workspace contract verbatim. This package is the
+# foundation layer, so it holds itself to the strictest available settings and
+# grants itself no exemptions.
+include: ../../analysis_options.yaml

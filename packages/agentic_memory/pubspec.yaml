@@ -1,0 +1,36 @@
+name: agentic_memory
+description: >-
+  Memory for the agentic framework: conversation, working, long-term and
+  semantic memory behind one store port, with keyword, embedding and hybrid
+  retrieval, summarising and recalling history strategies, and tools that let an
+  agent manage its own memory.
+version: 0.1.0
+repository: https://github.com/v1j4yk/agentic_flutter
+issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
+documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_memory/README.md
+topics:
+  - ai
+  - agents
+  - memory
+  - rag
+  - agentic
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  agentic_agents: ^0.1.0
+  agentic_core: ^0.1.0
+  agentic_llm: ^0.1.0
+  agentic_tools: ^0.1.0
+  # Floored at what we actually use (`@immutable`, `@protected`,
+  # `@visibleForTesting`) rather than at the newest release. The Flutter SDK
+  # pins `meta` to the version it ships, so a tighter floor here would make the
+  # package unusable from a Flutter app — which is the one thing it must not be.
+  meta: ^1.16.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2

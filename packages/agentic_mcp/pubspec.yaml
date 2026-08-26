@@ -1,0 +1,38 @@
+name: agentic_mcp
+description: >-
+  Model Context Protocol for the agentic framework: a client that exposes a
+  remote MCP server's tools, resources and prompts as ordinary framework
+  objects, and a server that publishes your own tools over the protocol.
+version: 0.1.0
+repository: https://github.com/v1j4yk/agentic_flutter
+issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
+documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_mcp/README.md
+topics:
+  - ai
+  - mcp
+  - model-context-protocol
+  - tools
+  - agentic
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  agentic_core: ^0.1.0
+  agentic_llm: ^0.1.0
+  agentic_tools: ^0.1.0
+  http: ^1.6.0
+  # Floored at what we actually use (`@immutable`, `@protected`,
+  # `@visibleForTesting`) rather than at the newest release. The Flutter SDK
+  # pins `meta` to the version it ships, so a tighter floor here would make the
+  # package unusable from a Flutter app — which is the one thing it must not be.
+  meta: ^1.16.0
+
+dev_dependencies:
+  # Used by the example, which shows an agent running MCP tools. Kept out of
+  # `dependencies` because this package works perfectly well without agents.
+  agentic_agents: ^0.1.0
+  lints: ^6.1.0
+  test: ^1.31.2

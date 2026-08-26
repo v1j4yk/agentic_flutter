@@ -1,0 +1,144 @@
+# agentic_flutter
+
+The agentic framework, ready to use in a Flutter app. One import gives you every
+layer, plus the pieces that only make sense in an app: a runtime that lives as
+long as the widget tree, cancellation tied to the app lifecycle, device
+capabilities as tools, somewhere safe to keep a key, and widgets for chat,
+approval and traces.
+
+```dart
+import 'package:agentic_flutter/agentic_flutter.dart';
+
+void main() {
+  final runtime = AgenticRuntime(
+    tools: ToolRegistry()..register(myTool),
+    backgroundPolicy: BackgroundPolicy.cancelOnPause,
+  );
+
+  runApp(AgenticScope(runtime: runtime, child: const MyApp()));
+}
+```
+
+```dart
+// Anywhere below the scope:
+final controller = AgentChatController(
+  agent: ToolCallingAgent(
+    info: AgentInfo(name: 'assistant', description: 'Helps with things.'),
+    model: OpenAiCompatibleChatModel.openAi(apiKey: key),
+    tools: context.agenticTools.all,
+  ),
+  runtime: context.agentic,
+);
+
+AgentChatView(controller: controller);
+```
+
+## What is here
+
+| Piece | What it is for |
+|---|---|
+| The umbrella | Re-exports all nine packages — one import, not nine |
+| `AgenticRuntime` | Owns the event bus, tool registry and logger for the app's lifetime |
+| `AgenticScope` / `context.agentic` | Hands the runtime down the tree |
+| `LifecycleCancellation` | Stops runs when the app leaves the foreground |
+| `FlutterLogSink` | Logging through `debugPrint`, silent in release |
+| `SecretStore` | Where an API key lives, and an honest account of the options |
+| `locationTool`, `cameraTool`, `askUserTool`, `shareTool` | Device capabilities as tools |
+| `AgentChatController` / `AgentChatView` | A streaming chat surface with a stop button |
+| `ToolApprovalSheet` / `sheetApprovalHandler` | Human-in-the-loop, failing closed |
+| `EventRecorder` / `TraceInspector` | A live trace panel for a debug drawer |
+
+## Five decisions worth knowing about
+
+**No plugin dependencies.** Location, camera, secure storage and speech each
+mean a platform dependency, a permissions story and an upgrade treadmill.
+Adding them here would put all of that into every app that only calls a hosted
+model. So `platform_tools` and `SecretStore` are ports over callbacks you
+supply: a few lines in your app, and nothing in anybody else's build.
+
+**Cancellation is tied to the lifecycle, not just to the screen.** A server
+process runs until its work is done; a phone suspends the app mid-run. An agent
+loop that nothing asks to stop is either billing for an answer nobody will read
+or resuming hours later against a screen that no longer exists.
+`BackgroundPolicy` decides which of those you get, and the default —
+`cancelOnDetach` — survives a brief switch away without leaving a model call
+running behind a dying process.
+
+**The runtime is inherited, not global.** A singleton is one runtime, which is
+fine until a widget test wants a fake, a second screen wants a different tool
+set, or two tests in a suite inherit each other's disposed event bus. All three
+disappear when it comes down the tree.
+
+**Approval fails closed, and the sheet is written so it stays that way.**
+`agentic_tools` already denies a gated tool with no handler configured. So the
+risk here is a sheet that says yes by accident: dismissing denies, the arguments
+the model actually proposed are shown rather than a summary, the allow button is
+not autofocused, and a handler with no navigator to ask through denies rather
+than allowing.
+
+**Widgets are a starting point, not a design system.** `AgentChatView` is a
+working chat screen — transcript, composer, activity line, stop button, error
+rendering. Every real product replaces it. The controller and the parts it is
+built from (`ChatEntryTile`, `ChatComposer`) are public precisely so you can
+keep the state and throw the pixels away.
+
+## API keys: read this before shipping
+
+An API key compiled into a Flutter app is readable by anyone who downloads it.
+Not "hard to find" — an APK is a zip file. The same goes for `--dart-define`, an
+asset, or a bundled `.env`. There are two honest answers:
+
+1. **Do not ship the key.** Put a small service between the app and the
+   provider, authenticate the *user* to it, and let it hold the provider key.
+   This is the only approach that is actually safe.
+2. **Let the user supply their own key** — normal for developer tools. Then it
+   needs somewhere safe on the device, which is what `SecretStore` is for.
+
+The package ships the port and an in-memory implementation; the keychain adapter
+is five lines in your app over `flutter_secure_storage`. `DartDefineSecretStore`
+exists and refuses to serve unlisted keys in release builds, because pretending
+the option does not exist does not stop people using it.
+
+## Why an umbrella package
+
+An application should not have to know that `AgentSession` lives in
+`agentic_agents` and `MetadataFilter` in `agentic_vector`. A *plugin* should: a
+package that adds one tool depends on `agentic_tools` and nothing else, and
+stays small. **Applications take the umbrella; extensions take the layer they
+extend.**
+
+## Cost and performance notes
+
+* **`BackgroundPolicy.cancelOnPause` is the setting that bounds cost** on a
+  phone. Users switch away constantly; without it, every one of those is a run
+  that keeps going.
+* **Resize photos before returning them.** A 4 MB camera JPEG is ~5.3 MB of
+  base64 and a four-figure token count. 1024 pixels on the long edge answers
+  almost any question a model is asked about an image; `cameraTool` enforces a
+  ceiling and says so rather than sending it.
+* **`EventRecorder` is bounded** at 500 events by default and reports what it
+  dropped. An unbounded trace panel is a memory leak that gets the app killed.
+* **Logging is debug-only** unless you opt in. A framework that logs prompts in
+  release has published them to the platform log.
+
+## Common mistakes
+
+| Mistake | What happens |
+|---|---|
+| No `AgenticScope` above the widget | A `ConfigurationException` naming the missing widget, not a null dereference three frames later |
+| Forgetting `LifecycleCancellation.detach()` | One leaked `WidgetsBinding` observer per visit to the screen |
+| Sharing one context across runs | Cancelling one run cancels the others; use `runtime.run` or `runContext` |
+| Shipping an API key in the binary | You have published the key |
+| Expecting `AgentChatController.send` to queue | It refuses a second turn instead — two turns racing on one session interleave its history |
+| Disposing a runtime you passed in | `AgenticScope` leaves it alone unless `disposeRuntime: true` |
+
+## Documentation
+
+* [Example](example/) — a working chat app: `cd example && flutter run`
+* [Architecture](../../doc/architecture.md)
+* Individual layers: [`agentic_core`](../agentic_core/),
+  [`agentic_tools`](../agentic_tools/), [`agentic_llm`](../agentic_llm/),
+  [`agentic_agents`](../agentic_agents/), [`agentic_memory`](../agentic_memory/),
+  [`agentic_workflow`](../agentic_workflow/),
+  [`agentic_vector`](../agentic_vector/), [`agentic_rag`](../agentic_rag/),
+  [`agentic_mcp`](../agentic_mcp/)

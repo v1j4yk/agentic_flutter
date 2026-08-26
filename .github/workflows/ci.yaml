@@ -1,0 +1,332 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Pinned so a Dart release never turns green CI red without a deliberate bump.
+  DART_SDK_VERSION: "3.11.0"
+  FLUTTER_VERSION: "3.41.1"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Fast gate: formatting + static analysis on the lowest supported SDK. If the
+  # workspace does not compile on the floor of the version constraint, the
+  # constraint is wrong.
+  # ---------------------------------------------------------------------------
+  analyze:
+    name: format + analyze (Dart ${{ matrix.sdk }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        sdk: ["3.11.0", "stable"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ matrix.sdk }}
+      - name: Resolve workspace
+        run: dart pub get
+      - name: Verify formatting
+        # Formatting needs no resolution, so it covers every package including
+        # the Flutter one.
+        run: dart format --output=none --set-exit-if-changed .
+      - name: Analyze
+        # The workspace members only. `agentic_flutter` resolves separately
+        # against the Flutter SDK and is analysed in the `flutter` job; running
+        # it here would fail on unresolved `package:flutter` imports.
+        run: dart analyze --fatal-infos --fatal-warnings packages/agentic_core packages/agentic_tools packages/agentic_llm packages/agentic_agents packages/agentic_memory packages/agentic_workflow packages/agentic_vector packages/agentic_rag packages/agentic_mcp packages/agentic_benchmark packages/agentic_integration packages/create_agentic_app
+
+  # ---------------------------------------------------------------------------
+  # Unit tests for the pure-Dart packages across every platform we claim to
+  # support. Windows and macOS are included because path handling and file
+  # storage adapters historically break there first.
+  # ---------------------------------------------------------------------------
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Run tests
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_core
+      - name: Run tests (tools)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_tools
+      - name: Run tests (llm)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_llm
+      - name: Run tests (agents)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_agents
+      - name: Run tests (memory)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_memory
+      - name: Run tests (workflow)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_workflow
+      - name: Run tests (vector)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_vector
+      - name: Run tests (rag)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_rag
+      - name: Run tests (mcp)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_mcp
+      - name: Run tests (benchmark harness)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_benchmark
+      # The integration package's own tests only. The provider suite is tagged
+      # `integration` and excluded by its `dart_test.yaml`; it runs nightly,
+      # where spending money and tolerating a flaky provider are acceptable.
+      - name: Run tests (integration harness)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_integration
+      - name: Run tests (project generator)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/create_agentic_app
+
+  # ---------------------------------------------------------------------------
+  # Coverage is reported but never gated on a hard percentage: a number-chasing
+  # gate rewards trivial tests. Reviewers read the diff coverage instead.
+  # ---------------------------------------------------------------------------
+  coverage:
+    name: coverage
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Collect coverage
+        run: |
+          dart pub global activate coverage
+          for pkg in packages/*/; do
+            if [ -d "$pkg/test" ]; then
+              (cd "$pkg" && dart test --coverage=coverage \
+                && dart pub global run coverage:format_coverage \
+                     --lcov --in=coverage --out=coverage/lcov.info \
+                     --report-on=lib --packages=.dart_tool/package_config.json)
+            fi
+          done
+      - uses: codecov/codecov-action@v4
+        with:
+          files: packages/agentic_core/coverage/lcov.info,packages/agentic_tools/coverage/lcov.info,packages/agentic_llm/coverage/lcov.info,packages/agentic_agents/coverage/lcov.info,packages/agentic_memory/coverage/lcov.info,packages/agentic_workflow/coverage/lcov.info,packages/agentic_vector/coverage/lcov.info,packages/agentic_rag/coverage/lcov.info,packages/agentic_mcp/coverage/lcov.info
+          fail_ci_if_error: false
+
+  # ---------------------------------------------------------------------------
+  # Benchmarks report rather than gate. Numbers on a shared runner vary by tens
+  # of per cent between identical runs, so a gate here would fire on noise and
+  # be disabled within a week. What it *does* catch is a change that stops a
+  # benchmark compiling or running at all — and the table lands in the job
+  # summary, where a reviewer can see an order-of-magnitude move.
+  # ---------------------------------------------------------------------------
+  benchmark:
+    name: benchmarks (report only)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Run
+        working-directory: packages/agentic_benchmark
+        run: |
+          {
+            echo '### Benchmarks'
+            echo
+            echo '```'
+            dart run bin/benchmark.dart 2>/dev/null
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # `agentic_flutter` is not a workspace member: `flutter_test` pins `test_api`
+  # to the version the Flutter SDK ships and `package:test` needs a newer one,
+  # so they cannot share a resolution. Keeping it separate is what lets the
+  # other nine packages stay testable on the Dart VM alone — the property the
+  # whole layering exists to protect.
+  # ---------------------------------------------------------------------------
+  flutter:
+    name: flutter (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - name: Resolve
+        run: flutter pub get
+        working-directory: packages/agentic_flutter
+      - name: Analyze
+        run: flutter analyze --fatal-infos --fatal-warnings
+        working-directory: packages/agentic_flutter
+      - name: Test
+        run: flutter test --reporter=expanded
+        working-directory: packages/agentic_flutter
+      - name: Dry-run
+        run: flutter pub publish --dry-run
+        working-directory: packages/agentic_flutter
+
+  # ---------------------------------------------------------------------------
+  # The example is a real app, and building it is the only check that catches a
+  # public API that reads well and does not compile. Web also proves the whole
+  # stack stays platform-neutral — a `dart:io` import anywhere below the
+  # umbrella would fail here.
+  # ---------------------------------------------------------------------------
+  example-app:
+    name: build example (web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: flutter pub get
+        working-directory: packages/agentic_flutter/example
+      - run: flutter build web --release
+        working-directory: packages/agentic_flutter/example
+
+  # ---------------------------------------------------------------------------
+  # The public API is committed to `api/`. A rename or a removal is a breaking
+  # change for somebody, and the way those ship is not carelessness but
+  # invisibility — one line in a two-hundred-line diff that nobody's eye stops
+  # on. This turns it into a diff in the one file a reviewer is looking at for
+  # exactly that.
+  # ---------------------------------------------------------------------------
+  api-surface:
+    name: public API unchanged
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Compare against api/
+        run: dart run packages/agentic_benchmark/bin/api_snapshot.dart
+
+  # ---------------------------------------------------------------------------
+  # The templates in `create_agentic_app` are Dart source held in Dart strings,
+  # so the analyser never sees them — the classic way a scaffolding tool ships
+  # something that does not compile. This generates a project and compiles it.
+  # It caught two missing imports the first time it ran.
+  # ---------------------------------------------------------------------------
+  template:
+    name: generated project compiles
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
+      - run: dart pub get
+
+      - name: Generate a project
+        run: >-
+          dart run packages/create_agentic_app/bin/create_agentic_app.dart
+          generated_probe
+          --directory="$RUNNER_TEMP/generated_probe"
+          --framework-path="$GITHUB_WORKSPACE/packages/agentic_flutter"
+
+      - name: Point it at this checkout
+        # The generated pubspec depends on `agentic_flutter` by path, but that
+        # package in turn depends on its nine siblings by version — and none of
+        # them are published yet.
+        run: |
+          cat > "$RUNNER_TEMP/generated_probe/pubspec_overrides.yaml" <<'YAML'
+          dependency_overrides:
+          YAML
+          for pkg in agents core llm mcp memory rag tools vector workflow; do
+            {
+              echo "  agentic_$pkg:"
+              echo "    path: $GITHUB_WORKSPACE/packages/agentic_$pkg"
+            } >> "$RUNNER_TEMP/generated_probe/pubspec_overrides.yaml"
+          done
+
+      - name: Analyse it
+        working-directory: ${{ runner.temp }}/generated_probe
+        run: |
+          flutter pub get
+          flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Run its tests
+        working-directory: ${{ runner.temp }}/generated_probe
+        run: flutter test --reporter=expanded
+
+  # ---------------------------------------------------------------------------
+  # Publishability. `pub publish --dry-run` catches missing licences, oversized
+  # archives, bad SDK constraints and unresolvable dependencies long before a
+  # release is cut.
+  # ---------------------------------------------------------------------------
+  publish-dry-run:
+    name: pub publish --dry-run
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - name: Dry-run every publishable package
+        run: |
+          set -e
+          for pkg in packages/*/; do
+            # `agentic_flutter` needs the Flutter SDK; the `flutter` job
+            # dry-runs it.
+            [ "$pkg" = "packages/agentic_flutter/" ] && continue
+            # `agentic_benchmark` sets `publish_to: none`; it is an instrument,
+            # not a library.
+            [ "$pkg" = "packages/agentic_benchmark/" ] && continue
+            # `agentic_integration` likewise: a harness, not a library.
+            [ "$pkg" = "packages/agentic_integration/" ] && continue
+            echo "::group::$pkg"
+            (cd "$pkg" && dart pub publish --dry-run)
+            echo "::endgroup::"
+          done
+
+  # ---------------------------------------------------------------------------
+  # pana scores the package the way pub.dev will. We fail below 140/160 so that
+  # documentation and platform-support regressions surface in review.
+  # ---------------------------------------------------------------------------
+  pana:
+    name: pub.dev score
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart pub global activate pana
+      - name: Score agentic_core
+        run: dart pub global run pana --no-warning --exit-code-threshold 20 packages/agentic_core

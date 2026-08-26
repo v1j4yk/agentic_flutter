@@ -1,0 +1,26 @@
+# Local development overrides.
+#
+# `agentic_flutter` resolves on its own rather than as a workspace member (see
+# the root `pubspec.yaml` for why), so its siblings are reached by path until
+# they are published. Pub reads this file automatically and it is not part of
+# the published archive, which is why it is here rather than as
+# `dependency_overrides` in `pubspec.yaml`.
+dependency_overrides:
+  agentic_agents:
+    path: ../agentic_agents
+  agentic_core:
+    path: ../agentic_core
+  agentic_llm:
+    path: ../agentic_llm
+  agentic_mcp:
+    path: ../agentic_mcp
+  agentic_memory:
+    path: ../agentic_memory
+  agentic_rag:
+    path: ../agentic_rag
+  agentic_tools:
+    path: ../agentic_tools
+  agentic_vector:
+    path: ../agentic_vector
+  agentic_workflow:
+    path: ../agentic_workflow

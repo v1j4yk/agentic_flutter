@@ -1,0 +1,27 @@
+# Line endings, decided here rather than per contributor.
+#
+# CI runs `dart format --output=none --set-exit-if-changed .` on Ubuntu, and
+# `dart format` writes LF. A contributor whose Git checks out CRLF and commits
+# it that way turns every file into a formatting failure on a machine they
+# cannot see, for a reason the error message does not mention. Normalising in
+# the repository takes the setting away from `core.autocrlf` entirely.
+* text=auto eol=lf
+
+# Binary, so Git never rewrites bytes inside them or tries to diff them.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.woff binary
+*.woff2 binary
+*.jar binary
+*.keystore binary
+
+# Generated, and reviewed as a whole rather than line by line. Collapsing them
+# in a diff keeps a pull request about the change that caused them.
+api/*.txt linguist-generated=true
+packages/agentic_benchmark/baseline.json linguist-generated=true

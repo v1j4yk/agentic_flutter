@@ -1,0 +1,165 @@
+name: agentic_flutter_workspace
+publish_to: none
+description: >-
+  Monorepo workspace root for the agentic framework. This package is never
+  published; it exists to give every member package a single, shared dependency
+  resolution and one place to define repository-wide tasks.
+
+# The framework targets the current stable Dart. Pinning the floor to the
+# feature set we actually use (class modifiers, sealed types, patterns,
+# pub workspaces, dot-shorthands) is honest versioning: claiming support for an
+# older SDK we never compile against is a bug report waiting to happen.
+environment:
+  sdk: ^3.11.0
+
+# Native pub workspaces (Dart >= 3.6) rather than melos bootstrap: one
+# `.dart_tool/package_config.json`, one lockfile, no generated
+# `pubspec_overrides.yaml` files to keep out of version control. Melos is kept
+# purely as a task runner on top.
+workspace:
+  - packages/agentic_core
+  - packages/agentic_tools
+  - packages/agentic_llm
+  - packages/agentic_agents
+  - packages/agentic_memory
+  - packages/agentic_workflow
+  - packages/agentic_vector
+  - packages/agentic_rag
+  - packages/agentic_mcp
+  - packages/agentic_benchmark
+  - packages/agentic_integration
+  - packages/create_agentic_app
+# `agentic_flutter` is deliberately NOT a workspace member. `flutter_test` pins
+# `test_api` to the version the Flutter SDK ships, and `package:test` needs a
+# newer one; they cannot share a single resolution. Including it would drag
+# every pure-Dart package onto Flutter's pinned test stack and undo the property
+# the layering exists to protect — that everything below `agentic_flutter` is
+# testable on the Dart VM alone. It resolves on its own with `flutter pub get`
+# and reaches its siblings through `pubspec_overrides.yaml`.
+
+dev_dependencies:
+  melos: ^8.5.0
+
+melos:
+  scripts:
+    analyze:
+      description: Statically analyse every package with fatal infos.
+      exec: dart analyze --fatal-infos --fatal-warnings .
+
+    format:
+      description: Verify formatting without rewriting files.
+      run: dart format --output=none --set-exit-if-changed .
+
+    format:fix:
+      description: Format and rewrite all Dart sources.
+      run: dart format .
+
+    test:
+      description: Run unit tests for every pure-Dart package.
+      exec: dart test --reporter=compact
+      packageFilters:
+        dirExists: test
+        flutter: false
+
+    # `agentic_flutter` is not a workspace member, so melos cannot discover it
+    # through package filters. These scripts address it by directory instead —
+    # explicit, and obviously correct when someone adds a second Flutter
+    # package and wonders why it is not running.
+    analyze:flutter:
+      description: Analyse the Flutter package and its example app.
+      run: >-
+        cd packages/agentic_flutter && flutter pub get &&
+        flutter analyze --fatal-infos --fatal-warnings &&
+        cd example && flutter pub get &&
+        flutter analyze --fatal-infos --fatal-warnings
+
+    test:flutter:
+      description: Run the widget tests for the Flutter package.
+      run: cd packages/agentic_flutter && flutter test --reporter=compact
+
+    coverage:
+      description: Run tests and emit an lcov report per package.
+      exec: >-
+        dart test --coverage=coverage &&
+        dart run coverage:format_coverage --lcov --in=coverage
+        --out=coverage/lcov.info --report-on=lib
+      packageFilters:
+        dirExists: test
+        flutter: false
+
+    publish:dry:
+      description: Validate that every publishable package is releasable.
+      exec: dart pub publish --dry-run
+      packageFilters:
+        published: false
+
+    publish:dry:flutter:
+      description: Validate the Flutter package, which needs the Flutter SDK.
+      run: cd packages/agentic_flutter && flutter pub publish --dry-run
+
+    benchmark:
+      description: Run the micro-benchmarks and print the table.
+      run: cd packages/agentic_benchmark && dart run bin/benchmark.dart
+
+    benchmark:check:
+      description: Compare against the recorded baseline; fails on a regression.
+      run: >-
+        cd packages/agentic_benchmark &&
+        dart run bin/benchmark.dart --baseline
+
+    conformance:
+      description: >-
+        Run the provider conformance suite. Needs credentials, calls real APIs,
+        and costs a small amount of money.
+      run: >-
+        cd packages/agentic_integration &&
+        dart test --tags integration --reporter=expanded
+
+    audit:
+      description: Print the provider capability matrix.
+      run: cd packages/agentic_integration && dart run bin/audit.dart
+
+    template:check:
+      description: >-
+        Generate a project from the template and compile it. The only thing
+        that keeps the templates — Dart source held in strings — honest.
+      run: >-
+        dart run packages/create_agentic_app/bin/create_agentic_app.dart
+        template_probe --directory=.template_probe
+        --framework-path=packages/agentic_flutter --force
+
+    api:
+      description: >-
+        Check the public API against the snapshots in api/. A diff there is an
+        API change, which is the point of the file.
+      run: dart run packages/agentic_benchmark/bin/api_snapshot.dart
+
+    api:write:
+      description: >-
+        Record the current public API. The deliberate act that says the change
+        was intended.
+      run: dart run packages/agentic_benchmark/bin/api_snapshot.dart --write
+
+    release:check:
+      description: >-
+        Check that every package is releasable at a version, in dependency
+        order. Publishes nothing. Run this well before a release, not on
+        release day.
+      run: dart run tool/release.dart --version=0.1.0
+
+    release:
+      description: >-
+        Publish every package to pub.dev in dependency order. Irreversible:
+        pub.dev retracts for seven days and never removes. Needs `dart pub
+        login` and uploader rights on all eleven packages.
+      run: dart run tool/release.dart --version=0.1.0 --publish
+
+    doc:
+      description: Generate dartdoc API documentation.
+      exec: dart doc .
+
+    verify:
+      description: The full local gate. Run this before opening a pull request.
+      run: >-
+        melos run format && melos run analyze && melos run test &&
+        melos run api && melos run analyze:flutter && melos run test:flutter

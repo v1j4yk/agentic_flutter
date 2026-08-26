@@ -1,0 +1,102 @@
+name: nightly
+
+# Real providers, real money, real flakiness. None of that belongs on a pull
+# request: a suite that fails because a provider had a bad ten minutes teaches
+# people to re-run CI without reading it. Nightly is the right cadence — drift
+# in a provider's behaviour is discovered within a day, and a single red run is
+# information rather than noise.
+on:
+  schedule:
+    # 04:00 UTC, outside the peak hours when providers rate-limit hardest.
+    - cron: "0 4 * * *"
+  workflow_dispatch:
+    inputs:
+      providers:
+        description: "Filter to one provider group, e.g. openai"
+        required: false
+        type: string
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+env:
+  DART_SDK_VERSION: "3.11.0"
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # The conformance suite. Every check that fails names the provider and the
+  # behaviour, so a red run is actionable without opening the code.
+  # ---------------------------------------------------------------------------
+  conformance:
+    name: provider conformance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+      - run: dart pub get
+
+      - name: Run the conformance suite
+        working-directory: packages/agentic_integration
+        # Secrets that are not configured expand to the empty string, which the
+        # harness treats as absent and skips with a reason — so a fork without
+        # keys reports "nothing was proved" rather than a wall of failures.
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        run: >-
+          dart test --tags integration --reporter=expanded
+          ${{ inputs.providers && format('--name {0}', inputs.providers) || '' }}
+
+      - name: Capability matrix
+        if: always()
+        working-directory: packages/agentic_integration
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+        # `|| true`: the matrix is a report, and a provider being down must not
+        # hide the rows that did succeed.
+        run: |
+          {
+            echo '### Capability matrix'
+            echo
+            echo '```'
+            dart run bin/audit.dart 2>/dev/null || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  # ---------------------------------------------------------------------------
+  # Benchmarks on a schedule as well as per-push. A regression that creeps in
+  # over a fortnight of small changes is invisible in any single diff, and the
+  # nightly series is where it shows up.
+  # ---------------------------------------------------------------------------
+  benchmark:
+    name: benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: ${{ env.DART_SDK_VERSION }}
+      - run: dart pub get
+      - name: Run against the recorded baseline
+        working-directory: packages/agentic_benchmark
+        # Reported, not gated: the baseline was recorded on a quiet machine and
+        # this is a shared runner. A wide tolerance keeps an order-of-magnitude
+        # move visible without firing on ordinary variance.
+        run: |
+          {
+            echo '### Benchmarks'
+            echo
+            echo '```'
+            dart run bin/benchmark.dart --baseline --tolerance=0.5 || true
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

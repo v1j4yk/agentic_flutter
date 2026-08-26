@@ -1,0 +1,287 @@
+{
+  "dartVersion": "3.11.0",
+  "platform": "windows-x64",
+  "recordedAt": "2026-08-26T07:53:08.919637Z",
+  "results": [
+    {
+      "name": "core.schema.validate.valid",
+      "description": "Validating a nested object that conforms. The happy path, paid on every tool call the framework makes.",
+      "count": 2000,
+      "minUs": 7,
+      "medianUs": 16,
+      "p90Us": 32,
+      "p99Us": 113,
+      "maxUs": 1393
+    },
+    {
+      "name": "core.schema.validate.invalid",
+      "description": "Validating an object with four violations. Every violation is collected rather than short-circuiting, which is the point and also the cost.",
+      "count": 2000,
+      "minUs": 7,
+      "medianUs": 14,
+      "p90Us": 25,
+      "p99Us": 126,
+      "maxUs": 1354
+    },
+    {
+      "name": "core.schema.coerce",
+      "description": "Repairing the near-miss arguments a model actually emits — a quoted number, a string boolean — before validation.",
+      "count": 2000,
+      "minUs": 10,
+      "medianUs": 15,
+      "p90Us": 31,
+      "p99Us": 123,
+      "maxUs": 705
+    },
+    {
+      "name": "core.message.roundtrip",
+      "description": "Serialising a multi-part message and reading it back. Every persisted session and every resumed workflow pays this per message.",
+      "count": 2000,
+      "minUs": 10,
+      "medianUs": 13,
+      "p90Us": 24,
+      "p99Us": 138,
+      "maxUs": 1023
+    },
+    {
+      "name": "core.ulid.generate",
+      "description": "Generating a sortable identifier. Called at least once per event, and this framework publishes a lot of events.",
+      "count": 5000,
+      "minUs": 2,
+      "medianUs": 3,
+      "p90Us": 6,
+      "p99Us": 22,
+      "maxUs": 335
+    },
+    {
+      "name": "core.events.publish.8listeners",
+      "description": "Publishing one event to eight subscribers. The tax on observability being on by default.",
+      "count": 5000,
+      "minUs": 3,
+      "medianUs": 5,
+      "p90Us": 11,
+      "p99Us": 44,
+      "maxUs": 977
+    },
+    {
+      "name": "core.retry.backoff",
+      "description": "Computing a delay with decorrelated jitter. Cheap by design: a retry policy that costs real time is a retry policy that makes an outage worse.",
+      "count": 5000,
+      "minUs": 0,
+      "medianUs": 1,
+      "p90Us": 3,
+      "p99Us": 8,
+      "maxUs": 238
+    },
+    {
+      "name": "core.context.child",
+      "description": "Deriving a child context. Every agent step, tool call and workflow node creates one, so it sits on the hottest path there is.",
+      "count": 5000,
+      "minUs": 0,
+      "medianUs": 0,
+      "p90Us": 0,
+      "p99Us": 1,
+      "maxUs": 103
+    },
+    {
+      "name": "tools.execute.trivial",
+      "description": "Running a tool that returns immediately. Everything measured is framework overhead: lookup, coercion, validation, tracing, events.",
+      "count": 1000,
+      "minUs": 81,
+      "medianUs": 109,
+      "p90Us": 175,
+      "p99Us": 398,
+      "maxUs": 1158
+    },
+    {
+      "name": "tools.execute.rejected",
+      "description": "A call whose arguments do not validate. The failure path is the one a model exercises repeatedly while it learns a schema, so it must not be the slow one.",
+      "count": 1000,
+      "minUs": 43,
+      "medianUs": 56,
+      "p90Us": 92,
+      "p99Us": 310,
+      "maxUs": 1003
+    },
+    {
+      "name": "tools.executeAll.8parallel",
+      "description": "Eight read-only calls in one batch. Read-only calls run concurrently, so this measures the scheduling rather than the work.",
+      "count": 300,
+      "minUs": 256,
+      "medianUs": 538,
+      "p90Us": 873,
+      "p99Us": 2094,
+      "maxUs": 7413
+    },
+    {
+      "name": "llm.stream.assemble.500chunks",
+      "description": "Assembling five hundred streamed deltas into one response, including reassembling fragmented tool-call JSON. Runs on the UI isolate while text is arriving, so it competes with frame budget.",
+      "count": 300,
+      "minUs": 21,
+      "medianUs": 22,
+      "p90Us": 29,
+      "p99Us": 71,
+      "maxUs": 143
+    },
+    {
+      "name": "llm.sse.decode.500events",
+      "description": "Decoding five hundred server-sent events from a byte stream, including the chunk-boundary handling that makes it correct.",
+      "count": 200,
+      "minUs": 851,
+      "medianUs": 930,
+      "p90Us": 1560,
+      "p99Us": 2260,
+      "maxUs": 2650
+    },
+    {
+      "name": "agents.turn.noTools",
+      "description": "A whole agent turn against a model that answers instantly. The framework overhead of one step, with the provider taken out.",
+      "count": 500,
+      "minUs": 68,
+      "medianUs": 71,
+      "p90Us": 104,
+      "p99Us": 199,
+      "maxUs": 300
+    },
+    {
+      "name": "agents.turn.oneToolCall",
+      "description": "A turn that calls one tool and then answers: two model calls, one tool execution, and the history bookkeeping between them.",
+      "count": 300,
+      "minUs": 67,
+      "medianUs": 71,
+      "p90Us": 109,
+      "p99Us": 218,
+      "maxUs": 413
+    },
+    {
+      "name": "agents.session.select.100messages",
+      "description": "Choosing what history to send with a hundred messages already in the session. Runs before every model call, and grows with the conversation — which is exactly when a user is least patient.",
+      "count": 500,
+      "minUs": 1,
+      "medianUs": 1,
+      "p90Us": 2,
+      "p99Us": 3,
+      "maxUs": 114
+    },
+    {
+      "name": "memory.recall.5k",
+      "description": "Rarity-weighted keyword recall over five thousand memories, blended with importance and recency. Runs on every turn of a remembering agent, so it is on the interactive path rather than the batch one.",
+      "count": 200,
+      "minUs": 10793,
+      "medianUs": 12492,
+      "p90Us": 14187,
+      "p99Us": 16494,
+      "maxUs": 17461
+    },
+    {
+      "name": "vector.search.1k",
+      "description": "Exhaustive search over 1k 768-dimensional vectors. The measurement behind the claim that brute force is fine on a device at this scale.",
+      "count": 200,
+      "minUs": 1623,
+      "medianUs": 1802,
+      "p90Us": 2185,
+      "p99Us": 3211,
+      "maxUs": 3398
+    },
+    {
+      "name": "vector.search.10k",
+      "description": "Exhaustive search over 10k 768-dimensional vectors. The measurement behind the claim that brute force is fine on a device at this scale.",
+      "count": 50,
+      "minUs": 20319,
+      "medianUs": 21815,
+      "p90Us": 23508,
+      "p99Us": 25824,
+      "maxUs": 25824
+    },
+    {
+      "name": "vector.search.10k.filtered",
+      "description": "Exhaustive search over 10k vectors with a metadata filter applied before ranking — the rule the port exists to enforce.",
+      "count": 50,
+      "minUs": 10777,
+      "medianUs": 11446,
+      "p90Us": 13192,
+      "p99Us": 14578,
+      "maxUs": 14578
+    },
+    {
+      "name": "vector.upsert.1k",
+      "description": "Writing a thousand 768-dimensional records. The ingestion side, which happens once where search happens constantly.",
+      "count": 20,
+      "minUs": 18911,
+      "medianUs": 22279,
+      "p90Us": 33951,
+      "p99Us": 35287,
+      "maxUs": 35287
+    },
+    {
+      "name": "vector.cosine.768d",
+      "description": "One cosine similarity. Multiplied by the index size on every unfiltered query, so it is the constant the whole scan is made of.",
+      "count": 20000,
+      "minUs": 1,
+      "medianUs": 1,
+      "p90Us": 1,
+      "p99Us": 3,
+      "maxUs": 134
+    },
+    {
+      "name": "rag.chunk.recursive.100kb",
+      "description": "Splitting a hundred kilobytes of prose at natural boundaries. Paid once per document at ingestion, and the reason ingestion is slow when it is slow.",
+      "count": 30,
+      "minUs": 1180,
+      "medianUs": 1515,
+      "p90Us": 2444,
+      "p99Us": 4271,
+      "maxUs": 4271
+    },
+    {
+      "name": "rag.chunk.markdown.100kb",
+      "description": "The same document split at headings, which also builds the heading path every chunk carries.",
+      "count": 30,
+      "minUs": 2090,
+      "medianUs": 2783,
+      "p90Us": 4407,
+      "p99Us": 5096,
+      "maxUs": 5096
+    },
+    {
+      "name": "rag.bm25.build.5k",
+      "description": "Building a BM25 index over five thousand chunks. The cost of the lexical half of hybrid retrieval, paid at start-up.",
+      "count": 10,
+      "minUs": 137872,
+      "medianUs": 150520,
+      "p90Us": 155154,
+      "p99Us": 155612,
+      "maxUs": 155612
+    },
+    {
+      "name": "rag.bm25.search.5k",
+      "description": "One BM25 query over five thousand chunks of varied prose. The claim this checks is that a keyword index is effectively free next to an embedding call.",
+      "count": 500,
+      "minUs": 2755,
+      "medianUs": 3108,
+      "p90Us": 3795,
+      "p99Us": 4897,
+      "maxUs": 5897
+    },
+    {
+      "name": "rag.bm25.search.5k.commonTerms",
+      "description": "The worst case, stated as one: every query term appears in every chunk, so the inverted index has no selectivity to offer and the query degrades to a full scan. Kept because a benchmark suite that only measures the happy path is a suite that flatters itself.",
+      "count": 200,
+      "minUs": 3957,
+      "medianUs": 4573,
+      "p90Us": 5523,
+      "p99Us": 6636,
+      "maxUs": 8011
+    },
+    {
+      "name": "mcp.tool.call.roundtrip",
+      "description": "One tool call across an MCP boundary, in process. Isolates the protocol cost — framing, correlation, translation — from the transport, which in a real deployment dominates it.",
+      "count": 500,
+      "minUs": 79,
+      "medianUs": 115,
+      "p90Us": 168,
+      "p99Us": 372,
+      "maxUs": 571
+    }
+  ]
+}

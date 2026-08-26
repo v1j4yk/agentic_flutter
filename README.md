@@ -1,0 +1,548 @@
+# agentic
+
+A Flutter-native framework for building agentic AI applications — agents, tools,
+workflows, memory and retrieval — designed for mobile first and idiomatic to
+Dart throughout.
+
+> **Status: early development.** All ten packages are complete, tested and
+> documented, with a runnable example each and a working Flutter chat app.
+> Nothing has been published to pub.dev yet, and APIs may change until 1.0; see
+> [Roadmap](#roadmap) for what comes next.
+
+---
+
+## Why this exists
+
+Dart has HTTP clients that can call an LLM. What it does not have is the layer
+between "I can make a request" and "I shipped an assistant": the agent loop, the
+tool contract, the retry and cancellation discipline, the memory, the retrieval
+pipeline, the observability you need when an answer comes back wrong and you have
+to explain why.
+
+Ports of Python frameworks do not solve this. They inherit assumptions that do
+not hold on a phone:
+
+| Python assumption | Reality on mobile |
+|---|---|
+| The process lives as long as the task | The OS suspends your app mid-run |
+| The network is a datacentre LAN | Tunnels, lifts, 3 % battery, captive portals |
+| Blocking is fine | 16 ms per frame or the UI stutters |
+| Memory is effectively free | A 4 MB image inlined as base64 is a 5.3 MB body |
+| Secrets live in a server env var | Your API key ships inside an APK users can unzip |
+
+This framework treats each of those as a design input rather than an
+afterthought. Cancellation is a first-class primitive because users close
+screens. Time is injected because retry logic that really sleeps is untestable.
+Errors declare their own retryability because parsing provider error strings is
+how outages become incidents.
+
+## Design principles
+
+1. **Ports and adapters.** The core defines interfaces; every provider, store and
+   transport is an adapter behind one. Nothing in the core knows what OpenAI is.
+2. **Immutable values.** Messages, schemas and results are immutable, so history
+   can be shared between agents without defensive copying.
+3. **Explicit context over ambient state.** A run's identity, logger, event bus,
+   tracer, clock and cancellation travel in one `AgenticContext` that is passed,
+   never reached for.
+4. **Failures are typed and classified.** Every error is an `AgenticException`
+   with a stable code and an `isRetryable` answer.
+5. **Everything is observable.** Structured logs, OpenTelemetry-shaped traces and
+   a typed event bus, all inert by default and free until you opt in.
+6. **Testability is a feature.** Injected clocks, deterministic ID generators and
+   in-memory sinks ship in the package, not just in its own test folder.
+
+## Packages
+
+| Package | Status | What it does |
+|---|---|---|
+| **`agentic_core`** | ✅ Complete | Messages, content parts, JSON Schema, errors, cancellation, retry, circuit breaking, event bus, logging, tracing, registry, run context |
+| **`agentic_tools`** | ✅ Complete | Tool contract, registry, selection, argument validation and repair, approval gating, timeouts, execution events |
+| **`agentic_llm`** | ✅ Complete | Provider-independent chat and embedding models, streaming, tool calling, structured output, cost accounting, middleware, adapters for OpenAI-compatible APIs, Anthropic and Gemini |
+| **`agentic_agents`** | ✅ Complete | Bounded tool-calling loop, budgets, sessions, streaming, planner/executor, multi-agent delegation |
+| **`agentic_memory`** | ✅ Complete | Conversation, working, long-term and semantic memory; keyword, embedding and hybrid retrieval; summarising and recalling history; memory tools |
+| **`agentic_workflow`** | ✅ Complete | Graph engine: typed nodes, validation before execution, branching, parallelism, loops, budgets, human approval, resumable runs |
+| **`agentic_vector`** | ✅ Complete | Vector store port, metadata filtering, exact in-process search with snapshots, Qdrant adapter, embedding index |
+| **`agentic_rag`** | ✅ Complete | Loading, chunking, indexing, dense and BM25 retrieval, rank fusion, re-ranking, cited answers, retrieval tools |
+| **`agentic_mcp`** | ✅ Complete | Model Context Protocol client and server; remote tools as ordinary tools; stdio, HTTP and in-process transports |
+| **`agentic_flutter`** | ✅ Complete | The umbrella; app-lifetime runtime, lifecycle-bound cancellation, device capabilities as tools, secret storage, chat, approval and trace widgets |
+
+Applications depend on `agentic_flutter`, which re-exports the rest. Plugin
+authors depend only on the layer they extend — a tool package needs
+`agentic_tools`, not the whole framework.
+
+## Providers
+
+One `ChatModel` port; three genuinely different wire formats behind it.
+
+```dart
+final gpt    = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-4o');
+final claude = AnthropicChatModel(apiKey: anthropicKey);
+final gemini = GeminiChatModel(apiKey: googleKey);
+final local  = OpenAiCompatibleChatModel.ollama(model: 'qwen2.5:7b');
+```
+
+One adapter covers OpenAI, DeepSeek, Grok, Mistral, Together, Groq, Fireworks,
+OpenRouter, Ollama and llama.cpp — they all speak the same format. Anthropic and
+Gemini get native adapters because their formats genuinely differ, and
+supporting a third shape is what proves the abstraction holds rather than being
+an OpenAI request in disguise.
+
+Cross-cutting behaviour composes as ordinary decorators, with the order visible
+at the call site:
+
+```dart
+final model = ObservableChatModel(       // logs, traces, publishes events
+  RetryingChatModel(                     // retries transient failures
+    CachingChatModel(                    // serves repeats from cache
+      FallbackChatModel([gpt, claude, local]),  // routes around a dead provider
+      cache: InMemoryChatCache(),
+    ),
+  ),
+);
+
+final answer = await model.prompt('Explain Dart records in one sentence.');
+```
+
+## Agents
+
+An agent is a bounded loop around a model and a set of tools.
+
+```dart
+final agent = ToolCallingAgent(
+  info: AgentInfo(
+    name: 'researcher',
+    description: 'Researches technical topics using web search.',
+  ),
+  model: model,
+  tools: registry.select(tags: {'research'}),
+  instructions: 'Cite your sources. Say so when you are unsure.',
+  budget: AgentBudget.interactive,
+);
+
+final result = await agent.run(AgentInput.text('What shipped in Dart 3.11?'));
+print('${result.text} — ${result.iterations} steps, ${result.usage.totalTokens} tokens');
+```
+
+**Budgets are not optional.** The characteristic failure of an agentic system is
+not a crash; it is a loop that runs correctly and forever while the bill grows.
+Every individual call succeeds — only the aggregate is wrong, which is why
+bounds live in the loop rather than in a monitor. On its last permitted
+iteration the loop forbids tool calling so the run still answers instead of
+ending on an unanswered tool call.
+
+**Delegation needs no new mechanism.** `AgentTool` presents an agent as a tool,
+so a supervisor is an ordinary agent whose tools happen to be other agents —
+inheriting argument validation, approval gating, tracing and cancellation
+unchanged:
+
+```dart
+final supervisor = supervisorOver(
+  model: model,
+  members: [researcher, writer, reviewer],
+);
+```
+
+## Memory
+
+Knowledge that outlives a conversation, retrieved when it is relevant rather
+than replayed because it is recent.
+
+```dart
+final store = InMemoryMemoryStore();
+await store.remember(
+  'Ada wants answers written in British English.',
+  kind: MemoryKind.preference,
+  importance: 0.9,
+);
+
+final session = AgentSession(
+  strategy: RecallingHistory(
+    store: store,
+    inner: SummarisingHistory(model: cheapModel, keepRecent: 8),
+  ),
+);
+```
+
+**Retrieval is keyword-first, deliberately.** Embeddings are worse than term
+matching at recalling a name, identifier or version number — a large share of
+what memory is actually asked for. `InMemoryMemoryStore` needs no model at all;
+`EmbeddedMemoryStore` adds the semantic half; `HybridMemoryStore` fuses the two
+rankings, which beats either alone.
+
+**Nothing relevant returns nothing.** A store with no relevance floor always
+returns its best guesses, which is how a memory system starts confidently
+recalling irrelevancies.
+
+## Workflows
+
+For work whose shape is known in advance, where an agent loop is the wrong tool.
+
+```dart
+final graph = WorkflowGraph(
+  id: 'ticket-triage',
+  inputs: {'ticket': JsonSchema.string()},
+  nodes: [start, classify, draft, approve, send, discard, end],
+  edges: [
+    WorkflowEdge('classify', 'draft', label: 'urgent'),
+    WorkflowEdge('approve', 'send', label: 'approved'),
+    // ...
+  ],
+);   // throws here, listing every problem, if the graph is wrong
+```
+
+**Validation happens before execution.** A node reading a key nothing upstream
+writes is a build-time error, not a failure three minutes into a run that has
+already spent money and half-changed the world.
+
+**A suspended run outlives the process.** A workflow paused for approval becomes
+a JSON snapshot; the app can be killed and the run resumed the next morning on
+another device, keeping its original run identifier.
+
+```dart
+final result = await engine.run(graph, input: {'ticket': text});
+
+if (result.status == WorkflowStatus.suspended) {
+  await db.save(jsonEncode(result.snapshot!.toJson()));
+}
+// later, elsewhere
+await engine.resume(graph, snapshot, resumeValue: {'approved': true});
+```
+
+## In a Flutter app
+
+`agentic_flutter` is the umbrella an application depends on, and the only
+package that may import Flutter. One import, one runtime, and the pieces that
+only make sense in an app.
+
+```dart
+import 'package:agentic_flutter/agentic_flutter.dart';
+
+void main() {
+  final runtime = AgenticRuntime(
+    tools: ToolRegistry()..register(myTool),
+    // Runs stop when the app leaves the screen. On a phone this is the setting
+    // that decides whether a forgotten conversation keeps billing.
+    backgroundPolicy: BackgroundPolicy.cancelOnPause,
+  );
+
+  runApp(AgenticScope(runtime: runtime, child: const MyApp()));
+}
+```
+
+```dart
+// Anywhere below the scope:
+AgentChatView(
+  controller: AgentChatController(agent: agent, runtime: context.agentic),
+);
+```
+
+Streaming, a stop button, a tool-approval sheet that fails closed, and a live
+trace panel are all there. So are device capabilities — as tool factories over
+callbacks you supply, so no plugin dependency reaches anybody's build:
+
+```dart
+registry.register(locationTool(
+  read: () async {
+    final position = await Geolocator.getCurrentPosition();
+    return DeviceLocation(
+      latitude: position.latitude,
+      longitude: position.longitude,
+      accuracyMetres: position.accuracy,
+    );
+  },
+));
+```
+
+**On API keys:** a key compiled into a Flutter app is readable by anyone who
+downloads it — an APK is a zip file, and `--dart-define` is no better. Put the
+key behind a service the user authenticates to, or let the user supply their own
+and keep it in a `SecretStore`. `agentic_flutter` ships the port and says so
+plainly rather than offering a comfortable illusion.
+
+## A taste of the API
+
+```dart
+import 'package:agentic_core/agentic_core.dart';
+import 'package:agentic_tools/agentic_tools.dart';
+
+// 1. Describe a capability. The description is what the model reasons over,
+//    so it is written for the model, not for a code reviewer.
+final searchTool = FunctionTool(
+  name: 'search_web',
+  description:
+      'Searches the public web and returns the top results with titles, URLs '
+      'and snippets. Use for current events and facts that may have changed. '
+      'Do not use for the user\'s own documents — use `search_documents`.',
+  tags: {'research'},
+  parameters: JsonSchema.object(
+    properties: {
+      'query': JsonSchema.string(description: "The query, in the user's words"),
+      'limit': JsonSchema.integer(minimum: 1, maximum: 10, defaultValue: 5),
+    },
+    required: {'query'},
+  ),
+  handler: (invocation) async {
+    final results = await api.search(invocation.require<String>('query'));
+    return ToolResult.success(results.join('\n'));
+  },
+);
+
+// 2. Keep a catalogue; hand each agent only the slice it needs.
+final registry = ToolRegistry()..register(searchTool);
+final executor = ToolExecutor(tools: registry.select(tags: {'research'}));
+
+// 3. Run what the model asked for. Arguments are repaired and validated,
+//    budgets enforced, events published, spans opened — and failures come back
+//    as messages the model can recover from.
+final messages = await executor.executeAllAsMessages(
+  response.toolCalls,
+  context: context,
+);
+```
+
+Setting up a run, with everything observable:
+
+```dart
+final bus = BroadcastEventBus();
+final context = AgenticContext.root(
+  logger: StructuredLogger(level: LogLevel.debug),
+  events: bus,
+  tracer: Tracer(exporter: InMemorySpanExporter()),
+  timeout: const Duration(minutes: 2),
+);
+
+// A UI can subscribe after the run has started and still see everything:
+// the bus replays recent events to late subscribers.
+bus.on<ToolCallStarted>().listen((e) => setState(() => status = e.toolName));
+
+// The user leaving the screen stops the work, the backoff, and the socket.
+final source = CancellationTokenSource();
+onDispose(() => source.cancel('user navigated away'));
+```
+
+## Getting started
+
+Requires **Dart 3.11+** / **Flutter 3.41+**.
+
+### A new app
+
+```bash
+dart pub global activate create_agentic_app
+create_agentic_app my_app --provider=anthropic
+
+cd my_app
+flutter create . --platforms ios,android,macos,windows,linux
+flutter run
+```
+
+You get a chat screen, an agent with three tools, human approval for the one
+that changes something, a live trace panel, and four passing tests. It runs
+immediately in **demo mode** against a scripted model — there is something on
+screen before there is an API key, which is deliberate: a template whose first
+run is an error about credentials teaches the wrong thing.
+
+### Working on the framework
+
+```bash
+git clone https://github.com/v1j4yk/agentic_flutter.git
+cd agentic
+dart pub get          # one resolution for the nine pure-Dart packages
+dart run melos run verify   # format + analyze + test
+
+cd packages/agentic_flutter && flutter pub get && flutter test
+cd example && flutter run   # a working chat app, no API key needed
+```
+
+The nine pure-Dart packages share one [native pub workspace][workspaces], so
+there is no bootstrap step. `agentic_flutter` resolves separately: `flutter_test`
+pins `test_api` to the version the Flutter SDK ships and `package:test` needs a
+newer one, and forcing them together would drag every pure-Dart package onto
+Flutter's pinned test stack — undoing the property the layering exists for.
+Melos is present purely as a task runner.
+
+[workspaces]: https://dart.dev/tools/pub/workspaces
+
+## Testing philosophy
+
+The suite runs in about a second and never touches a network or a real clock.
+
+```bash
+dart test                                  # everything
+dart test packages/agentic_core            # one package
+```
+
+Anything that waits does so through an injected `Clock`, so a ten-minute retry
+budget is exercised in microseconds *and* asserted precisely:
+
+```dart
+final clock = FakeClock(autoAdvance: true);
+
+await expectLater(
+  const RetryPolicy(
+    maxAttempts: 4,
+    backoff: ExponentialBackoff(
+      initial: Duration(milliseconds: 100),
+      jitter: Jitter.none,
+    ),
+  ).execute((attempt) async => throw transient(), operation: 'x', clock: clock),
+  throwsA(isA<ProviderException>()),
+);
+
+// Not "it eventually failed" — the exact schedule.
+expect(clock.requestedDelays, [
+  Duration(milliseconds: 100),
+  Duration(milliseconds: 200),
+  Duration(milliseconds: 400),
+]);
+```
+
+Current coverage: **909 tests**, zero analyzer issues under a strict lint set
+with `--fatal-infos`.
+
+## Measuring
+
+```sh
+dart run melos run benchmark          # the table
+dart run melos run benchmark:check    # compare against the recorded baseline
+```
+
+Twenty-eight micro-benchmarks across every layer, reporting percentiles rather
+than a mean — an average hides the p99 that a user actually notices. The
+[suite](packages/agentic_benchmark/) exists to make claims falsifiable, and it
+started by falsifying two of ours:
+
+| Claim | Measured | Outcome |
+|---|---|---|
+| "Scanning ten thousand 768-dimensional vectors is a few milliseconds" | 45 ms | Vectors moved to `Float64List` with a typed similarity path → **24 ms**, and the docs now state the measurement |
+| "A keyword index costs a millisecond per query" | 5.9 ms over 5k chunks | BM25 index inverted, so a query walks only chunks containing its terms → **3.3 ms**, and the docs say 3.3 ms |
+
+The rule the pipeline benchmarks defend: framework overhead per agent step stays
+under about a millisecond, so it disappears next to a 400 ms completion. It
+currently sits at **70 µs** for a turn with one tool call.
+
+## Verifying against real providers
+
+Recorded payloads catch a *shape* change the moment it appears in a fixture.
+What they cannot catch is **behaviour drift** — a provider changing which
+`finish_reason` it sends for a truncated answer, how it fragments tool-call JSON
+across stream chunks, whether it still reports usage on a stream.
+
+So [`agentic_integration`](packages/agentic_integration/) is one battery of
+behaviours run against *every* adapter, not bespoke tests per provider:
+
+```sh
+AGENTIC_INTEGRATION=1 OPENAI_API_KEY=… dart test
+dart run melos run audit          # the capability matrix
+```
+
+Two gates, both required. Credentials alone are not consent: most people who use
+this framework have `OPENAI_API_KEY` exported in their shell, and they should
+not be billed for running `dart test` out of habit. A provider without
+credentials is skipped **with its reason attached**, so "not configured" stays
+visibly different from "broken" — but opting in with no keys at all fails
+loudly, because a run that proved nothing should not look green.
+
+The highest-leverage check is the capability audit: a declared capability that
+is not real fails deep inside an agent loop where the cause is invisible, and
+here it is one cell in a table. It is also the only honest test of the
+abstraction — if `ChatRequest` were quietly an OpenAI request in disguise, this
+is where Gemini would say so.
+
+Runs nightly. Providers are flaky, and there are deliberately **no retries**: a
+retry wrapper would hide exactly the intermittent behaviour the suite exists to
+surface.
+
+## The public API is committed
+
+`api/agentic_core.txt` and its siblings list every exported name, and CI fails
+when the code and the file disagree.
+
+```sh
+dart run melos run api          # check
+dart run melos run api:write    # record an intended change
+```
+
+An API review is a moment; a snapshot is a mechanism. Once a package is
+published, a rename is a breaking change for somebody — and the way those ship
+is not carelessness but invisibility: one line in a two-hundred-line diff that
+nobody's eye stops on. The check is not "did you get approval", it is "did you
+notice", and the header carries the count so a reviewer seeing `142 names`
+become `141` knows to look for a removal before reading a single line.
+
+It reads `export ... show ...` clauses, so it catches a name appearing,
+disappearing or changing — the class of change that breaks a build. It does not
+catch a parameter becoming required or a return type narrowing. That limit is
+stated rather than glossed over.
+
+Three APIs carry `@experimental` and are exempt from the compatibility promise:
+`PlannerExecutorAgent` (how a plan is represented is still being learned),
+`WorkflowSnapshot` (the *serialised* shape, not the mechanism), and `McpServer`
+(the client half is exercised against real servers nightly; this half has met
+one client, which is our own).
+
+## Releasing
+
+Eleven packages that depend on each other have exactly one valid publishing
+order, and pub.dev is append-only — a wrong version published exists forever,
+because retraction hides a release for seven days but never removes it.
+
+So the order is derived from the pubspecs rather than written down, and the
+preflight matters more than the publishing:
+
+```sh
+dart run melos release:check     # checks everything, publishes nothing
+dart pub login                   # once, interactively
+dart run melos release           # for real
+```
+
+(`dart run melos` rather than `melos`, since melos is a dev dependency here and
+not something you have to install globally.)
+
+The check that earns the tool its place is the quiet one. Bump every package to
+0.2.0 and leave the constraints between them reading `^0.1.0`, and every dry run
+passes, every package publishes, and every user resolves the new `agentic_tools`
+against the *old* `agentic_core` — a combination nobody tested, because locally
+the workspace always resolved to the source next door. Nothing fails until
+somebody else's build does, and a human checklist cannot catch it: it looks like
+success at every step.
+
+If a release fails part-way, resume rather than restart. `--from=agentic_rag`
+skips what is already live; re-running the whole order instead fails on "version
+already exists" and strands everything after it.
+
+## Roadmap
+
+**Now** — a 0.2 release to pub.dev. Everything that had to happen first is
+done: benchmarks that falsified two claims in these docs, a conformance suite
+holding every adapter to one contract nightly, a project template verified by
+compiling what it generates, and an API surface that is committed, checked, and
+has had its naming pass — `prune`, `using` and `tokenise` were renamed while
+they were still free to change, because a framework exporting names that
+generic into every application's namespace is a framework that collides with
+its users.
+
+**Then** — the adapters the ports were designed for and this repository should
+not own: `sqlite-vec` and Isar `VectorStore` implementations, a
+`flutter_secure_storage` `SecretStore`, and platform-tool packages for camera,
+location and speech. Each is a small package depending on one layer, which is
+what the layering was for.
+
+**Then** — the adapters the ports were designed for and this repository should
+not own: `sqlite-vec` and Isar `VectorStore` implementations, a
+`flutter_secure_storage` `SecretStore`, and platform-tool packages for camera,
+location and speech. Each is a small package depending on one layer, which is
+what the layering was for.
+
+See [`doc/architecture.md`](doc/architecture.md) for the layering, the extension
+points and the API shapes the unbuilt packages are designed against.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). In short: `melos run verify` must pass,
+every public member needs documentation, and every behavioural change needs a
+test that fails without it.
+
+## Licence
+
+MIT — see [LICENSE](LICENSE).

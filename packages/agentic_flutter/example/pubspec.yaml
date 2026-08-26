@@ -1,0 +1,22 @@
+name: agentic_flutter_example
+description: A runnable chat app showing agentic_flutter end to end.
+publish_to: none
+version: 1.0.0
+
+environment:
+  sdk: ^3.11.0
+  flutter: ">=3.41.0"
+
+dependencies:
+  agentic_flutter:
+    path: ../
+  # Only for `FakeChatModel`, so the example runs with no API key. A real app
+  # imports `package:agentic_flutter/agentic_flutter.dart` and nothing else.
+  agentic_llm: ^0.1.0
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter

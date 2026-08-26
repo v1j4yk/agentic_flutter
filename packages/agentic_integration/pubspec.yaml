@@ -1,0 +1,25 @@
+name: agentic_integration
+description: >-
+  A conformance suite run against real providers. The same battery of
+  behaviours applied to every adapter, so a provider changing what it does is
+  caught here rather than by a user.
+version: 0.1.0
+# Never published: this is a verification harness for the repository, and it
+# spends money when it runs.
+publish_to: none
+
+environment:
+  sdk: ^3.11.0
+
+resolution: workspace
+
+dependencies:
+  agentic_agents: ^0.1.0
+  agentic_core: ^0.1.0
+  agentic_llm: ^0.1.0
+  agentic_tools: ^0.1.0
+  meta: ^1.16.0
+
+dev_dependencies:
+  lints: ^6.1.0
+  test: ^1.31.2
