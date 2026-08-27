@@ -399,17 +399,85 @@ Future<List<String>> _dryRun(_Package package) async {
 }
 
 Future<bool> _publish(_Package package, {required bool force}) async {
-  final process = await Process.start(
-    package.isFlutter ? 'flutter' : 'dart',
-    <String>['pub', 'publish', if (force) '--force'],
-    workingDirectory: package.directory,
-    runInShell: true,
-    // Inherited so the confirmation prompt and the OAuth URL reach the person
-    // running this. A release tool that swallows an authentication prompt
-    // looks like a hang.
-    mode: ProcessStartMode.inheritStdio,
-  );
-  return await process.exitCode == 0;
+  final executable = package.isFlutter ? 'flutter' : 'dart';
+  final arguments = <String>['pub', 'publish', if (force) '--force'];
+
+  if (!force) {
+    final process = await Process.start(
+      executable,
+      arguments,
+      workingDirectory: package.directory,
+      runInShell: true,
+      // Inherited so the confirmation prompt and the OAuth URL reach the
+      // person running this. A release tool that swallows an authentication
+      // prompt looks like a hang.
+      mode: ProcessStartMode.inheritStdio,
+    );
+    return await process.exitCode == 0;
+  }
+
+  // Forced, so there is no prompt to relay and the output can be captured
+  // instead — which is what makes a rate limit distinguishable from a real
+  // failure.
+  for (var attempt = 1; ; attempt++) {
+    final result = await Process.run(
+      executable,
+      arguments,
+      workingDirectory: package.directory,
+      runInShell: true,
+    );
+    _echo(result.stdout);
+    if (result.exitCode == 0) return true;
+
+    final output = '${result.stdout}\n${result.stderr}';
+    if (!_isRateLimited(output) || attempt >= _rateLimitAttempts) {
+      _echo(result.stderr, toStderr: true);
+      return false;
+    }
+
+    // pub.dev caps how many *new* packages one account may create in a short
+    // window. A monorepo's first release is exactly the shape that exceeds it
+    // — eleven packages that have never existed, published back to back — and
+    // it is not a failure of any of them. Waiting is the correct response, and
+    // doing it here rather than making a person re-run the tool three times is
+    // the difference between a release and an afternoon.
+    final wait = Duration(minutes: attempt);
+    stdout.writeln(
+      '    rate-limited by pub.dev; waiting ${wait.inMinutes}m before '
+      'attempt ${attempt + 1} of $_rateLimitAttempts',
+    );
+    await Future<void>.delayed(wait);
+  }
+}
+
+/// How many times to wait out a rate limit before giving up.
+const int _rateLimitAttempts = 6;
+
+/// Whether pub refused because of a rate limit rather than a defect.
+bool _isRateLimited(String output) =>
+    output.contains('rate limit has been reached');
+
+/// Prints pub's output without the archive file tree.
+///
+/// The listing is dozens of lines per package and says nothing a release log
+/// needs; what matters is the validation result and any complaint.
+void _echo(Object? output, {bool toStderr = false}) {
+  for (final line in const LineSplitter().convert('$output')) {
+    if (line.startsWith('│') ||
+        line.startsWith('├') ||
+        line.startsWith('└') ||
+        line.startsWith('    ')) {
+      continue;
+    }
+    if (line.trim().isEmpty) continue;
+    // Written directly rather than through a local, which the analyser reads
+    // as a sink somebody forgot to close.
+    if (toStderr) {
+      stderr.writeln('    $line');
+    } else {
+      stdout.writeln('    $line');
+    }
+  }
 }
 
 /// Waits until pub.dev serves [version] of [package].
