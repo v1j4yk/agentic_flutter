@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1
+
+- Tightened the package description. This one already scored full marks; the
+  change keeps the wording consistent with its sibling packages, which did
+  not.
+
 ## 0.1.0
 
 Initial release of the retrieval layer.

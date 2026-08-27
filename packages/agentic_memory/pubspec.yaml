@@ -1,10 +1,9 @@
 name: agentic_memory
 description: >-
-  Memory for the agentic framework: conversation, working, long-term and
-  semantic memory behind one store port, with keyword, embedding and hybrid
-  retrieval, summarising and recalling history strategies, and tools that let an
-  agent manage its own memory.
-version: 0.1.0
+  Memory for AI agents: conversation, working, long-term and semantic
+  stores, with keyword, embedding and hybrid recall, and summarising history
+  strategies.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_memory/README.md

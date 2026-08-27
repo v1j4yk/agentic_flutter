@@ -1,9 +1,9 @@
 name: agentic_agents
 description: >-
-  Agent orchestration for the agentic framework: a bounded tool-calling loop,
-  planner/executor decomposition, multi-agent delegation, sessions, budgets and
-  streaming, built on provider-independent models and tools.
-version: 0.1.0
+  A bounded tool-calling agent loop with budgets, sessions and streaming,
+  plus a planner/executor and multi-agent delegation. Budgets are required,
+  not optional.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_agents/README.md

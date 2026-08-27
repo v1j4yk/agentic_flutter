@@ -1,9 +1,8 @@
 name: agentic_mcp
 description: >-
-  Model Context Protocol for the agentic framework: a client that exposes a
-  remote MCP server's tools, resources and prompts as ordinary framework
-  objects, and a server that publishes your own tools over the protocol.
-version: 0.1.0
+  A Model Context Protocol client and server for Dart. Remote MCP tools
+  become ordinary agent tools, over stdio, HTTP or in-process transports.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_mcp/README.md

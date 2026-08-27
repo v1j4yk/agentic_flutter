@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.1
+
+- Added `example/`, which the package had been missing. Most people meet this
+  package as a command, so the library underneath went undocumented — and it
+  is the half that matters for anyone scaffolding several projects, testing
+  what the template emits, or generating from these files and then adding
+  their own.
+- Shortened the package description to the 60-180 character window search
+  engines and pana both work in.
+
 ## 0.1.0
 
 Initial release.

@@ -7,70 +7,70 @@ packages:
       path: "../../agentic_agents"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_core:
     dependency: "direct overridden"
     description:
       path: "../../agentic_core"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_flutter:
     dependency: "direct main"
     description:
       path: ".."
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_llm:
     dependency: "direct main"
     description:
       path: "../../agentic_llm"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_mcp:
     dependency: "direct overridden"
     description:
       path: "../../agentic_mcp"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_memory:
     dependency: "direct overridden"
     description:
       path: "../../agentic_memory"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_rag:
     dependency: "direct overridden"
     description:
       path: "../../agentic_rag"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_tools:
     dependency: "direct overridden"
     description:
       path: "../../agentic_tools"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_vector:
     dependency: "direct overridden"
     description:
       path: "../../agentic_vector"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   agentic_workflow:
     dependency: "direct overridden"
     description:
       path: "../../agentic_workflow"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   async:
     dependency: transitive
     description:

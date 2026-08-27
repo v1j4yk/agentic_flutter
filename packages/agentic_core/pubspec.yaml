@@ -1,10 +1,9 @@
 name: agentic_core
 description: >-
-  Foundation layer of the agentic framework for Dart and Flutter: immutable
-  message and content models, JSON Schema, a structured error hierarchy,
-  cancellation, retry and circuit-breaker policies, a typed event bus, and
-  structured logging and tracing. Pure Dart, no Flutter dependency.
-version: 0.1.0
+  Foundation of the agentic AI framework: messages, JSON Schema, typed
+  errors, cancellation, retry, an event bus, logging and tracing. Pure Dart,
+  with no provider knowledge.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_core/README.md

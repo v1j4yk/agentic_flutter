@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.1
+
+- Shortened the package description to the 60-180 character window pana
+  scores against. Search engines truncate anything longer, so the ten points
+  it withheld were pointing at a real defect: the useful half of the sentence
+  was never being shown.
+
 ## 0.1.0
 
 Initial release of the model layer.

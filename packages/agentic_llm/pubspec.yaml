@@ -1,10 +1,9 @@
 name: agentic_llm
 description: >-
-  Provider-independent large language model access for the agentic framework:
-  streaming, tool calling, structured output, embeddings, cost accounting and
-  composable middleware, with adapters for OpenAI-compatible APIs, Anthropic
-  and Google Gemini.
-version: 0.1.0
+  Provider-independent chat and embedding models with streaming, tool
+  calling and structured output. Adapters for OpenAI-compatible APIs,
+  Anthropic and Gemini.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_llm/README.md

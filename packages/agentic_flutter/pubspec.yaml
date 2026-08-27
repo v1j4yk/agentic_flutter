@@ -1,9 +1,9 @@
 name: agentic_flutter
 description: >-
-  Flutter bindings for the agentic framework: the umbrella package applications
-  depend on, an app-lifetime runtime, platform capabilities as tools, secure
-  key storage, and widgets for chat, tool approval and traces.
-version: 0.1.0
+  Flutter bindings for the agentic AI framework: the umbrella package apps
+  depend on, a lifecycle-bound runtime, device tools, secret storage and
+  chat widgets.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_flutter/README.md

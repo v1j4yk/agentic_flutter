@@ -1,9 +1,8 @@
 name: agentic_vector
 description: >-
-  Vector store abstraction for the agentic framework: records, metadata
-  filtering, similarity search and a portable store port, with an in-process
-  implementation and a Qdrant adapter.
-version: 0.1.0
+  A vector store port with metadata filtering, exact in-process search with
+  snapshots, and a Qdrant adapter. Typed Float64List arithmetic throughout.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_vector/README.md

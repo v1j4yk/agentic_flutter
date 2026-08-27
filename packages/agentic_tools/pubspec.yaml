@@ -1,9 +1,9 @@
 name: agentic_tools
 description: >-
-  Tool and function-calling layer for the agentic framework: a typed tool
-  contract, JSON Schema argument validation, a tool registry with namespacing,
-  permission gating, timeouts and structured results. Pure Dart.
-version: 0.1.0
+  Tools an AI agent can call: a typed contract, a registry, argument
+  validation and repair, human approval for anything destructive, and
+  execution events.
+version: 0.1.1
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_tools/README.md
