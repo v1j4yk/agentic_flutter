@@ -154,6 +154,14 @@ melos:
         login` and uploader rights on all eleven packages.
       run: dart run tool/release.dart --version=0.1.0 --publish
 
+    fix:check:
+      description: >-
+        Apply each package's lib/fix_data.yaml to its test_fixes/ inputs and
+        compare with the goldens. Proves a breaking change still migrates.
+      exec: dart fix --compare-to-golden test_fixes
+      packageFilters:
+        dirExists: test_fixes
+
     doc:
       description: Generate dartdoc API documentation.
       exec: dart doc .
@@ -162,4 +170,4 @@ melos:
       description: The full local gate. Run this before opening a pull request.
       run: >-
         melos run format && melos run analyze && melos run test &&
-        melos run api && melos run analyze:flutter && melos run test:flutter
+        melos run api && melos run fix:check && melos run analyze:flutter && melos run test:flutter

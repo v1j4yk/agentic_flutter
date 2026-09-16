@@ -1,0 +1,87 @@
+# Data-driven fixes for `dart fix --apply`.
+#
+# Every breaking rename in this package ships with a rule here, so upgrading is
+# a command rather than an afternoon. Each rule is exercised by a golden test
+# in `test_fixes/`, run with `dart fix --compare-to-golden` — a fix rule that
+# is never run is a fix rule that silently stopped matching.
+version: 1
+
+transforms:
+  # 0.2.0: the memory tool factories take `store` by name, like every other
+  # tool factory in the framework. The positional argument is carried across
+  # verbatim, so an expression such as `memoryTools(context.read())` survives.
+  - title: "Pass 'store' by name"
+    date: 2026-09-16
+    element:
+      uris: ['package:agentic_memory/agentic_memory.dart']
+      function: 'memoryTools'
+    changes:
+      - kind: 'removeParameter'
+        index: 0
+      - kind: 'addParameter'
+        index: 0
+        name: 'store'
+        style: required_named
+        argumentValue:
+          expression: '{% store %}'
+          variables:
+            store:
+              kind: 'fragment'
+              value: 'arguments[0]'
+
+  - title: "Pass 'store' by name"
+    date: 2026-09-16
+    element:
+      uris: ['package:agentic_memory/agentic_memory.dart']
+      function: 'rememberTool'
+    changes:
+      - kind: 'removeParameter'
+        index: 0
+      - kind: 'addParameter'
+        index: 0
+        name: 'store'
+        style: required_named
+        argumentValue:
+          expression: '{% store %}'
+          variables:
+            store:
+              kind: 'fragment'
+              value: 'arguments[0]'
+
+  - title: "Pass 'store' by name"
+    date: 2026-09-16
+    element:
+      uris: ['package:agentic_memory/agentic_memory.dart']
+      function: 'recallTool'
+    changes:
+      - kind: 'removeParameter'
+        index: 0
+      - kind: 'addParameter'
+        index: 0
+        name: 'store'
+        style: required_named
+        argumentValue:
+          expression: '{% store %}'
+          variables:
+            store:
+              kind: 'fragment'
+              value: 'arguments[0]'
+
+  - title: "Pass 'store' by name"
+    date: 2026-09-16
+    element:
+      uris: ['package:agentic_memory/agentic_memory.dart']
+      function: 'forgetTool'
+    changes:
+      - kind: 'removeParameter'
+        index: 0
+      - kind: 'addParameter'
+        index: 0
+        name: 'store'
+        style: required_named
+        argumentValue:
+          expression: '{% store %}'
+          variables:
+            store:
+              kind: 'fragment'
+              value: 'arguments[0]'

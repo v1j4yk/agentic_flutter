@@ -130,7 +130,7 @@ Future<void> main() async {
   // 5. Tools the agent uses on itself.
   // ---------------------------------------------------------------------------
   print('\n--- memory tools ---');
-  final registry = ToolRegistry()..registerAll(memoryTools(store));
+  final registry = ToolRegistry()..registerAll(memoryTools(store: store));
   final toolUser = ToolCallingAgent(
     info: AgentInfo(name: 'librarian', description: 'Manages memory.'),
     model: FakeChatModel.toolCall(

@@ -35,6 +35,10 @@ analyzer:
     - "**/*.mocks.dart"
     - "**/generated/**"
     - "**/.dart_tool/**"
+    # Golden inputs for `dart fix --compare-to-golden`. They are written
+    # against the *previous* API on purpose, so they cannot compile against
+    # this one — that is what makes them a test of the migration.
+    - "**/test_fixes/**"
 
 linter:
   rules:

@@ -559,11 +559,9 @@ void main() {
       expect(restored.title, 'Guide');
       expect(restored.heading, 'Refunds');
       expect(restored.text, 'Refunds take five days.');
-      expect(
-        restored.metadata,
-        <String, Object?>{'team': 'billing'},
-        reason: 'reserved keys must not leak back to the caller',
-      );
+      expect(restored.metadata, <String, Object?>{
+        'team': 'billing',
+      }, reason: 'reserved keys must not leak back to the caller');
     });
 
     test('refuses to invent a document for a foreign record', () {
@@ -1387,6 +1385,21 @@ void main() {
       expect(result.isError, isFalse);
       expect(result.content, contains('[1] Policy'));
       expect(result.content, contains('thirty days'));
+    });
+
+    test('a tool description can be replaced, and defaults sensibly', () {
+      final retriever = KeywordRetriever(index: InMemoryKeywordIndex());
+      // The default keeps the corpus name and the advice to search again.
+      final byDefault = searchTool(retriever: retriever, corpus: 'the notes');
+      expect(byDefault.spec.description, contains('the notes'));
+      expect(byDefault.spec.description, contains('search again'));
+
+      // An override replaces it outright, as it does on the platform tools.
+      final custom = searchTool(
+        retriever: retriever,
+        description: 'Searches meeting notes only.',
+      );
+      expect(custom.spec.description, 'Searches meeting notes only.');
     });
 
     test('the search tool says nothing was found, in words', () async {

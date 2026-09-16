@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+### Breaking
+
+- `memoryTools`, `rememberTool`, `recallTool` and `forgetTool` take `store`
+  by name. Every other tool factory in the framework takes its arguments by
+  name; these four were the exception, and callers guessed wrong.
+
+  Migrate automatically:
+
+  ```sh
+  dart fix --apply
+  ```
+
+  ```dart
+  memoryTools(store)          // before
+  memoryTools(store: store)   // after
+  ```
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

@@ -252,6 +252,108 @@ void main() {
     });
   });
 
+  group('approval', () {
+    // A model that asks for one guarded tool call, then answers with whatever
+    // the tool result told it — so the final text reveals whether it ran.
+    FakeChatModel modelCallingGuardedTool() => FakeChatModel(
+      turns: <FakeTurn>[
+        FakeTurn.answer(
+          ChatResponse(
+            message: Message.assistant('', toolCalls: [callTo('delete_all')]),
+            modelId: 'fake-model',
+            finishReason: FinishReason.toolCalls,
+          ),
+        ),
+        FakeTurn.answer(
+          ChatResponse(
+            message: Message.assistant('Done.'),
+            modelId: 'fake-model',
+          ),
+        ),
+      ],
+    );
+
+    ({ToolRegistry registry, List<String> ran}) guardedRegistry() {
+      final ran = <String>[];
+      final registry = ToolRegistry()
+        ..register(
+          FunctionTool.text(
+            name: 'delete_all',
+            description: 'Deletes everything.',
+            isReadOnly: false,
+            requiresApproval: true,
+            handler: (_) {
+              ran.add('delete_all');
+              return 'deleted';
+            },
+          ),
+        );
+      return (registry: registry, ran: ran);
+    }
+
+    test('an approval handler on the agent gates the tool', () async {
+      final (:registry, :ran) = guardedRegistry();
+      final asked = <String>[];
+      final agent = ToolCallingAgent(
+        info: infoFor('assistant'),
+        model: modelCallingGuardedTool(),
+        tools: registry.all,
+        approvalHandler: (request) async {
+          asked.add(request.spec.name);
+          return true;
+        },
+      );
+
+      await agent.run(AgentInput.text('clear it'), context: testContext());
+
+      expect(asked, <String>['delete_all']);
+      expect(ran, <String>['delete_all']);
+    });
+
+    test('a refusal from that handler stops the tool', () async {
+      final (:registry, :ran) = guardedRegistry();
+      final agent = ToolCallingAgent(
+        info: infoFor('assistant'),
+        model: modelCallingGuardedTool(),
+        tools: registry.all,
+        approvalHandler: (_) async => false,
+      );
+
+      await agent.run(AgentInput.text('clear it'), context: testContext());
+
+      expect(ran, isEmpty);
+    });
+
+    test('without a handler a guarded tool is denied, not run', () async {
+      // The failure mode the new parameter exists to make visible: this used
+      // to be the only behaviour anyone got from the agent's constructor.
+      final (:registry, :ran) = guardedRegistry();
+      final agent = ToolCallingAgent(
+        info: infoFor('assistant'),
+        model: modelCallingGuardedTool(),
+        tools: registry.all,
+      );
+
+      await agent.run(AgentInput.text('clear it'), context: testContext());
+
+      expect(ran, isEmpty);
+    });
+
+    test('refuses a handler and a custom executor together', () {
+      final (:registry, ran: _) = guardedRegistry();
+      expect(
+        () => ToolCallingAgent(
+          info: infoFor('assistant'),
+          model: modelCallingGuardedTool(),
+          tools: registry.all,
+          executor: ToolExecutor(tools: registry.all),
+          approvalHandler: (_) async => true,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+  });
+
   group('budgets', () {
     test('forbids tool calling on the last permitted iteration', () async {
       // The mechanism that guarantees a user gets an answer instead of an

@@ -28,7 +28,7 @@ import 'package:agentic_tools/agentic_tools.dart';
 /// final agent = ToolCallingAgent(
 ///   info: AgentInfo(name: 'assistant', description: 'A personal assistant.'),
 ///   model: model,
-///   tools: (ToolRegistry()..registerAll(memoryTools(store))).all,
+///   tools: (ToolRegistry()..registerAll(memoryTools(store: store))).all,
 ///   instructions:
 ///       'When the user tells you something durable about themselves or their '
 ///       'work, call `remember`. Call `recall` before answering questions '
@@ -38,20 +38,24 @@ import 'package:agentic_tools/agentic_tools.dart';
 ///
 /// The instructions matter as much as the tools: a model given `remember`
 /// without being told when to use it will use it almost never.
-List<Tool> memoryTools(
-  MemoryStore store, {
+///
+/// `store` is named, as it is on every other tool factory in the framework
+/// (`searchTool(retriever: ...)`, `locationTool(...)`). It was positional in
+/// 0.1, the one exception; `dart fix --apply` migrates old call sites.
+List<Tool> memoryTools({
+  required MemoryStore store,
   String? sessionId,
   String? agentName,
   bool includeForget = false,
 }) => <Tool>[
-  rememberTool(store, sessionId: sessionId, agentName: agentName),
-  recallTool(store, sessionId: sessionId),
-  if (includeForget) forgetTool(store),
+  rememberTool(store: store, sessionId: sessionId, agentName: agentName),
+  recallTool(store: store, sessionId: sessionId),
+  if (includeForget) forgetTool(store: store),
 ];
 
 /// A tool that writes one memory.
-Tool rememberTool(
-  MemoryStore store, {
+Tool rememberTool({
+  required MemoryStore store,
   String? sessionId,
   String? agentName,
 }) => FunctionTool(
@@ -118,7 +122,10 @@ Tool rememberTool(
 );
 
 /// A tool that searches memory.
-Tool recallTool(MemoryStore store, {String? sessionId}) => FunctionTool(
+Tool recallTool({
+  required MemoryStore store,
+  String? sessionId,
+}) => FunctionTool(
   name: 'recall',
   description:
       'Searches what you remember about this user and their work. Use it '
@@ -178,7 +185,7 @@ Tool recallTool(MemoryStore store, {String? sessionId}) => FunctionTool(
 /// Not included by default. Deletion is irreversible, and a model that
 /// misreads a correction as a retraction can quietly erase a user's profile.
 /// Pair it with an approval handler when you do enable it.
-Tool forgetTool(MemoryStore store) => FunctionTool(
+Tool forgetTool({required MemoryStore store}) => FunctionTool(
   name: 'forget',
   description:
       'Deletes a remembered fact by its identifier, for when the user says '

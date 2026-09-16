@@ -82,6 +82,40 @@ The second tells a caller how to set it correctly. That is the standard.
 - **Thread the cancellation token** through anything that can take longer than a
   frame.
 
+## API conventions
+
+Written down because each was broken once, and nobody noticed until a caller
+guessed the signature wrong. A new public API follows the majority here; an
+exception needs a reason in its doc comment.
+
+- **A decorator takes what it wraps positionally.** `RetryingChatModel(inner)`,
+  `ObservableVectorStore(inner)`, `RememberingAgent(inner, store: …)`. The
+  wrapped object is the one argument there is never any doubt about.
+- **A tool factory takes everything by name**, and accepts `name` and
+  `description` overrides: `searchTool(retriever: …)`, `memoryTools(store: …)`,
+  `locationTool(read: …)`. A tool is configured, not wrapped.
+- **`content` is a record's body; `text` is a fragment.** `RagDocument.content`
+  and `MemoryEntry.content` are whole stored things; `DocumentChunk.text`,
+  `TextPart.text` and `RagAnswer.text` are pieces. Pick by that, not by taste.
+- **A capability goes where people look for it.** If the obvious place to set
+  something is the agent, the agent accepts it — even when the work happens in
+  a collaborator, as `ToolCallingAgent(approvalHandler:)` does for
+  `ToolExecutor`.
+
+### Breaking changes
+
+A breaking change is allowed before 1.0 and must be migratable:
+
+1. Add a rule to the package's `lib/fix_data.yaml`.
+2. Add a golden input to `test_fixes/` and its `.expect` output.
+3. Run `melos run fix:check`, then **edit the `.expect` so it is wrong and run
+   it again** — a golden test that cannot fail has not been tested.
+4. Record the change under `Unreleased` in the package's `CHANGELOG.md`.
+
+`melos run api` does not cover this. It compares exported *names*, so a
+parameter changing from positional to named passes it silently; the fix rule
+and its golden test are what protect users from that class of break.
+
 ## Errors
 
 Every failure is an `AgenticException` subclass with:

@@ -139,7 +139,7 @@ an assistant turn and the tool results answering it, which providers reject.
 final agent = ToolCallingAgent(
   info: info,
   model: model,
-  tools: (ToolRegistry()..registerAll(memoryTools(store))).all,
+  tools: (ToolRegistry()..registerAll(memoryTools(store: store))).all,
   instructions:
       'When the user tells you something durable about themselves or their '
       'work, call `remember`. Call `recall` before answering questions about '

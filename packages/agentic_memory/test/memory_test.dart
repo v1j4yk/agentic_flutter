@@ -604,7 +604,7 @@ void main() {
     setUp(() {
       store = InMemoryMemoryStore();
       executor = ToolExecutor(
-        tools: (ToolRegistry()..registerAll(memoryTools(store))).all,
+        tools: (ToolRegistry()..registerAll(memoryTools(store: store))).all,
       );
     });
 
@@ -643,7 +643,7 @@ void main() {
     });
 
     test('remember is not read-only, so writes cannot interleave', () {
-      expect(rememberTool(store).spec.isReadOnly, isFalse);
+      expect(rememberTool(store: store).spec.isReadOnly, isFalse);
     });
 
     test('recall reports an absence as knowledge, not as a failure', () async {
@@ -673,15 +673,15 @@ void main() {
 
     test('forget requires approval and is excluded by default', () async {
       expect(
-        memoryTools(store).map((t) => t.spec.name),
+        memoryTools(store: store).map((t) => t.spec.name),
         isNot(contains('forget')),
       );
-      expect(forgetTool(store).spec.requiresApproval, isTrue);
+      expect(forgetTool(store: store).spec.requiresApproval, isTrue);
     });
 
     test('forget reports a missing identifier usefully', () async {
       final gated = ToolExecutor(
-        tools: (ToolRegistry()..register(forgetTool(store))).all,
+        tools: (ToolRegistry()..register(forgetTool(store: store))).all,
         approvalHandler: (_) async => true,
       );
 

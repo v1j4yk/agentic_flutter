@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- `searchTool` and `answeringTool` accept a `description` override, as the
+  platform tools in `agentic_flutter` already do. Prefer `corpus` when it is
+  enough: the default description carries the advice to search again with
+  different wording, which is worth keeping.
+
 ## 0.1.1
 
 - Tightened the package description. This one already scored full marks; the
