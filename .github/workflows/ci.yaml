@@ -43,7 +43,7 @@ jobs:
         # The workspace members only. `agentic_flutter` resolves separately
         # against the Flutter SDK and is analysed in the `flutter` job; running
         # it here would fail on unresolved `package:flutter` imports.
-        run: dart analyze --fatal-infos --fatal-warnings packages/agentic_core packages/agentic_tools packages/agentic_llm packages/agentic_agents packages/agentic_memory packages/agentic_workflow packages/agentic_vector packages/agentic_rag packages/agentic_mcp packages/agentic_benchmark packages/agentic_integration packages/create_agentic_app
+        run: dart analyze --fatal-infos --fatal-warnings packages/agentic_core packages/agentic_tools packages/agentic_llm packages/agentic_agents packages/agentic_memory packages/agentic_workflow packages/agentic_vector packages/agentic_rag packages/agentic_mcp packages/agentic_sqlite packages/agentic_benchmark packages/agentic_integration packages/create_agentic_app
 
   # ---------------------------------------------------------------------------
   # Unit tests for the pure-Dart packages across every platform we claim to
@@ -90,6 +90,11 @@ jobs:
       - name: Run tests (mcp)
         run: dart test --reporter=expanded --concurrency=4
         working-directory: packages/agentic_mcp
+      # Runs on all three OSes on purpose: the SQLite binary comes from a build
+      # hook, and "it bundled on Windows" says nothing about Linux or macOS.
+      - name: Run tests (sqlite)
+        run: dart test --reporter=expanded --concurrency=4
+        working-directory: packages/agentic_sqlite
       - name: Run tests (benchmark harness)
         run: dart test --reporter=expanded --concurrency=4
         working-directory: packages/agentic_benchmark
@@ -129,7 +134,7 @@ jobs:
           done
       - uses: codecov/codecov-action@v4
         with:
-          files: packages/agentic_core/coverage/lcov.info,packages/agentic_tools/coverage/lcov.info,packages/agentic_llm/coverage/lcov.info,packages/agentic_agents/coverage/lcov.info,packages/agentic_memory/coverage/lcov.info,packages/agentic_workflow/coverage/lcov.info,packages/agentic_vector/coverage/lcov.info,packages/agentic_rag/coverage/lcov.info,packages/agentic_mcp/coverage/lcov.info
+          files: packages/agentic_core/coverage/lcov.info,packages/agentic_tools/coverage/lcov.info,packages/agentic_llm/coverage/lcov.info,packages/agentic_agents/coverage/lcov.info,packages/agentic_memory/coverage/lcov.info,packages/agentic_workflow/coverage/lcov.info,packages/agentic_vector/coverage/lcov.info,packages/agentic_rag/coverage/lcov.info,packages/agentic_mcp/coverage/lcov.info,packages/agentic_sqlite/coverage/lcov.info
           fail_ci_if_error: false
 
   # ---------------------------------------------------------------------------

@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-914%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-939%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -88,6 +88,7 @@ how outages become incidents.
 | **`agentic_vector`** | ✅ Complete | Vector store port, metadata filtering, exact in-process search with snapshots, Qdrant adapter, embedding index |
 | **`agentic_rag`** | ✅ Complete | Loading, chunking, indexing, dense and BM25 retrieval, rank fusion, re-ranking, cited answers, retrieval tools |
 | **`agentic_mcp`** | ✅ Complete | Model Context Protocol client and server; remote tools as ordinary tools; stdio, HTTP and in-process transports |
+| **`agentic_sqlite`** | 🧪 Unreleased | On-device persistence: SQLite-backed vector and memory stores that survive restarts |
 | **`agentic_flutter`** | ✅ Complete | The umbrella; app-lifetime runtime, lifecycle-bound cancellation, device capabilities as tools, secret storage, chat, approval and trace widgets |
 
 Applications depend on `agentic_flutter`, which re-exports the rest. Plugin
@@ -420,7 +421,7 @@ expect(clock.requestedDelays, [
 ]);
 ```
 
-Current coverage: **914 tests**, zero analyzer issues under a strict lint set
+Current coverage: **939 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring
