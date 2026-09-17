@@ -130,15 +130,20 @@ jobs:
           sdk: stable
       - run: dart pub get
       - name: Collect coverage
+        # `--package=.`, not `--packages=.dart_tool/package_config.json`: in a
+        # pub workspace only the root has a package config, so the per-package
+        # path does not exist and format_coverage exits with an error.
+        # agentic_flutter is skipped because its tests need `flutter test`; the
+        # flutter job runs them.
         run: |
           dart pub global activate coverage
           for pkg in packages/*/; do
-            if [ -d "$pkg/test" ]; then
-              (cd "$pkg" && dart test --coverage=coverage \
-                && dart pub global run coverage:format_coverage \
-                     --lcov --in=coverage --out=coverage/lcov.info \
-                     --report-on=lib --packages=.dart_tool/package_config.json)
-            fi
+            [ -d "$pkg/test" ] || continue
+            [ "$pkg" = "packages/agentic_flutter/" ] && continue
+            (cd "$pkg" && dart test --coverage=coverage \
+              && dart pub global run coverage:format_coverage \
+                   --lcov --in=coverage --out=coverage/lcov.info \
+                   --report-on=lib --package=.)
           done
       - uses: codecov/codecov-action@v4
         with:

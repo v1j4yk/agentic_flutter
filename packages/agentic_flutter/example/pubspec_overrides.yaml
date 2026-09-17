@@ -1,0 +1,23 @@
+# Local development overrides: the example builds against the sibling
+# packages in this checkout, not the releases on pub.dev, so a change that
+# spans packages is proven here before it is published. `agentic_flutter`
+# itself is already a path dependency.
+dependency_overrides:
+  agentic_agents:
+    path: ../../agentic_agents
+  agentic_core:
+    path: ../../agentic_core
+  agentic_llm:
+    path: ../../agentic_llm
+  agentic_mcp:
+    path: ../../agentic_mcp
+  agentic_memory:
+    path: ../../agentic_memory
+  agentic_rag:
+    path: ../../agentic_rag
+  agentic_tools:
+    path: ../../agentic_tools
+  agentic_vector:
+    path: ../../agentic_vector
+  agentic_workflow:
+    path: ../../agentic_workflow

@@ -559,9 +559,12 @@ void main() {
       expect(restored.title, 'Guide');
       expect(restored.heading, 'Refunds');
       expect(restored.text, 'Refunds take five days.');
-      expect(restored.metadata, <String, Object?>{
-        'team': 'billing',
-      }, reason: 'reserved keys must not leak back to the caller');
+      const callerMetadata = <String, Object?>{'team': 'billing'};
+      expect(
+        restored.metadata,
+        callerMetadata,
+        reason: 'reserved keys must not leak back to the caller',
+      );
     });
 
     test('refuses to invent a document for a foreign record', () {

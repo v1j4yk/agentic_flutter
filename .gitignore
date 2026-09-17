@@ -24,6 +24,9 @@ pubspec_overrides.yaml
 # pubspec for why), so its nine siblings are reached by path until they are
 # published. Ignoring it makes `flutter pub get` fail for everyone but us.
 !packages/agentic_flutter/pubspec_overrides.yaml
+# And the example app's, for the same reason one level down. Without it CI
+# built the example against the siblings on pub.dev, not this checkout.
+!packages/agentic_flutter/example/pubspec_overrides.yaml
 .melos_tool/
 
 # Secrets — never commit provider keys
