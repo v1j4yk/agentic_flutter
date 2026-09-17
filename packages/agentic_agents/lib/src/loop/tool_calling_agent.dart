@@ -87,6 +87,8 @@ final class ToolCallingAgent implements Agent {
     this.responseFormat = ResponseFormat.text,
     this.stopWhen,
     ToolApprovalHandler? approvalHandler,
+    UntrustedContentPolicy untrustedContentPolicy =
+        UntrustedContentPolicy.requireApproval,
     ToolExecutor? executor,
     this.ownsModel = false,
   }) : assert(
@@ -98,7 +100,11 @@ final class ToolCallingAgent implements Agent {
            executor ??
            (tools == null
                ? null
-               : ToolExecutor(tools: tools, approvalHandler: approvalHandler));
+               : ToolExecutor(
+                   tools: tools,
+                   approvalHandler: approvalHandler,
+                   untrustedContentPolicy: untrustedContentPolicy,
+                 ));
 
   @override
   final AgentInfo info;

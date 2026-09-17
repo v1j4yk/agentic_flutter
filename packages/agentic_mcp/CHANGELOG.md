@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- MCP tools return untrusted content: whatever a remote server returns was
+  written outside the application.
+  **Behaviour change**, so this ships in 0.2.0 only: a tool that is not
+  read-only, called after one of these tools returned, now needs approval.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

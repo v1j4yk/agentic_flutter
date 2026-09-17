@@ -36,6 +36,7 @@ import 'package:agentic_core/src/common/agentic_id.dart';
 import 'package:agentic_core/src/common/clock.dart';
 import 'package:agentic_core/src/common/json_types.dart';
 import 'package:agentic_core/src/context/human_wait.dart';
+import 'package:agentic_core/src/context/untrusted_content.dart';
 import 'package:agentic_core/src/error/agentic_exception.dart';
 import 'package:agentic_core/src/events/agentic_event.dart';
 import 'package:agentic_core/src/events/event_bus.dart';
@@ -65,8 +66,10 @@ final class AgenticContext {
     this.traceContext,
     this.deadline,
     HumanWaitLedger? humanWait,
+    UntrustedContentLedger? untrustedContent,
     Map<String, Object?> metadata = const <String, Object?>{},
   }) : humanWait = humanWait ?? HumanWaitLedger(),
+       untrustedContent = untrustedContent ?? UntrustedContentLedger(),
        metadata = metadata.isEmpty
            ? const <String, Object?>{}
            : Map<String, Object?>.unmodifiable(metadata);
@@ -149,6 +152,12 @@ final class AgenticContext {
   /// needs to know.
   final HumanWaitLedger humanWait;
 
+  /// Which tools have brought untrusted text into this run.
+  ///
+  /// Shared by the whole run, as [humanWait] is, so content read inside a tool
+  /// call is visible to the decision about the next one.
+  final UntrustedContentLedger untrustedContent;
+
   /// Application-defined metadata inherited by child scopes.
   ///
   /// The natural home for a user identifier, a tenant, a session — anything
@@ -217,6 +226,7 @@ final class AgenticContext {
       cancellation: childToken,
       traceContext: traceContext ?? this.traceContext,
       humanWait: humanWait,
+      untrustedContent: untrustedContent,
       deadline: effectiveTimeout == null
           ? deadline
           : clock.now().add(effectiveTimeout),

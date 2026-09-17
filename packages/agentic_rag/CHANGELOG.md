@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- `searchTool` and `answeringTool` return untrusted content: their passages come
+  from documents, and a document can contain instructions.
+  **Behaviour change**, so this ships in 0.2.0 only: a tool that is not
+  read-only, called after one of these tools returned, now needs approval.
+
 ## 0.1.2
 
 - `RagStack`: indexing, retrieval, a search tool and cited answers assembled

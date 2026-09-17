@@ -127,6 +127,9 @@ Tool recallTool({
   String? sessionId,
 }) => FunctionTool(
   name: 'recall',
+  // Memories are extracted from earlier conversations, which may have held
+  // injected text: recalling one is how an injection outlives its chat.
+  returnsUntrustedContent: true,
   description:
       'Searches what you remember about this user and their work. Use it '
       'before answering questions about preferences, past decisions or '

@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased
+
+- **Untrusted content.** `ToolSpec.returnsUntrustedContent` marks a tool whose
+  output the application did not write. Once one returns successfully,
+  `ToolExecutor` treats every tool that is not read-only according to
+  `UntrustedContentPolicy`: `requireApproval` (the default), `refuse` or
+  `allow`. `ToolApprovalRequest.untrustedSources` says which content preceded
+  the request. Untrusted results reach the model wrapped in
+  `<untrusted-content>` markers that text inside cannot close early.
+
+  This does not try to detect prompt injection, which nothing does reliably.
+  It guarantees that an injected instruction cannot change state unseen.
+
+  **Behaviour change** (0.2.0): an app with an untrusted tool and a
+  state-changing tool without an approval handler will now see those calls
+  denied after the untrusted tool runs. Add an approval handler, or pass
+  `untrustedContentPolicy: UntrustedContentPolicy.allow` for tools whose worst
+  outcome is harmless.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

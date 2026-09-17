@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The tool approval sheet warns when a request follows untrusted content,
+  naming the tools it came from.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

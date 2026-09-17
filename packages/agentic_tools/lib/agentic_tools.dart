@@ -41,5 +41,10 @@ export 'src/tool_events.dart'
         ToolEvent,
         ToolFailureKind;
 export 'src/tool_executor.dart'
-    show ToolApprovalHandler, ToolApprovalRequest, ToolExecutor;
+    show
+        ToolApprovalHandler,
+        ToolApprovalRequest,
+        ToolExecutor,
+        UntrustedContentPolicy,
+        kUntrustedContentClose;
 export 'src/tool_registry.dart' show ToolRegistry, ToolSet;

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+- `recallTool` returns untrusted content. Memories are extracted from earlier
+  conversations, which may have contained injected text — recall is how an
+  injection outlives the conversation it arrived in.
+  **Behaviour change**, so this ships in 0.2.0 only: a tool that is not
+  read-only, called after one of these tools returned, now needs approval.
+
 ### Breaking
 
 - `memoryTools`, `rememberTool`, `recallTool` and `forgetTool` take `store`

@@ -482,12 +482,62 @@ void main() {
   });
 
   group('tool approval', () {
-    ToolApprovalRequest requestFor(ToolSpec spec) => ToolApprovalRequest(
+    ToolApprovalRequest requestFor(
+      ToolSpec spec, {
+      List<String> untrustedSources = const <String>[],
+    }) => ToolApprovalRequest(
       spec: spec,
       callId: 'c1',
       arguments: const <String, Object?>{'to': 'board@example.test'},
       context: AgenticContext.root(),
+      untrustedSources: untrustedSources,
     );
+
+    testWidgets('warns when the request follows untrusted content', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        wrap(
+          ToolApprovalSheet(
+            request: requestFor(
+              ToolSpec(
+                name: 'forget_note',
+                description: 'Deletes a note.',
+                isReadOnly: false,
+              ),
+              untrustedSources: const <String>['search_notes'],
+            ),
+            onDecision: ({required approved}) {},
+          ),
+        ),
+      );
+
+      expect(
+        find.textContaining(
+          'Requested after reading content from search_notes',
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('an ordinary approval carries no such warning', (tester) async {
+      await tester.pumpWidget(
+        wrap(
+          ToolApprovalSheet(
+            request: requestFor(
+              ToolSpec(
+                name: 'send_email',
+                description: 'Sends an email.',
+                isReadOnly: false,
+              ),
+            ),
+            onDecision: ({required approved}) {},
+          ),
+        ),
+      );
+
+      expect(find.textContaining('Requested after reading'), findsNothing);
+    });
 
     testWidgets('shows the arguments the model actually proposed', (
       tester,

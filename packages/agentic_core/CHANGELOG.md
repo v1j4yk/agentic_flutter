@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- `UntrustedContentLedger` on `AgenticContext.untrustedContent`: which tools
+  brought text into a run that the application did not write. Shared by every
+  scope in a run, and impossible to clear.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

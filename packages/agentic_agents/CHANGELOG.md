@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `ToolCallingAgent(untrustedContentPolicy:)`, passed to its executor.
+
 ## 0.1.2
 
 - `SessionStore`, with `SessionSummary` and `InMemorySessionStore`: where

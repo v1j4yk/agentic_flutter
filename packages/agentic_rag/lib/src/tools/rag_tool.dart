@@ -50,6 +50,8 @@ Tool searchTool({
   String? namespace,
 }) => FunctionTool(
   name: name,
+  // Passages come from documents, and a document can contain instructions.
+  returnsUntrustedContent: true,
   description:
       description ??
       'Searches $corpus and returns the most relevant passages with their '
@@ -132,6 +134,8 @@ Tool answeringTool({
   String? namespace,
 }) => FunctionTool(
   name: name,
+  // Passages come from documents, and a document can contain instructions.
+  returnsUntrustedContent: true,
   description:
       description ??
       'Asks a question of $corpus and returns a written answer with its '

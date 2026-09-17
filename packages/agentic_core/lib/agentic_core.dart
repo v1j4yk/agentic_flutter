@@ -49,6 +49,7 @@ export 'src/common/json_types.dart'
 // --- Run context -------------------------------------------------------------
 export 'src/context/agentic_context.dart' show AgenticContext;
 export 'src/context/human_wait.dart' show HumanWaitLedger;
+export 'src/context/untrusted_content.dart' show UntrustedContentLedger;
 // --- Errors ------------------------------------------------------------------
 export 'src/error/agentic_exception.dart'
     show

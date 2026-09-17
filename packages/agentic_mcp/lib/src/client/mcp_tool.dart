@@ -161,6 +161,8 @@ final class McpTool implements Tool {
       // repeat is the more dangerous of the two guesses.
       isIdempotent: annotations.idempotentHint ?? readOnly,
       requiresApproval: requiresApproval ?? (destructive && !readOnly),
+      // Whatever a remote server returns was written outside this app.
+      returnsUntrustedContent: true,
       timeout: timeout,
       tags: const <String>{'mcp'},
     );

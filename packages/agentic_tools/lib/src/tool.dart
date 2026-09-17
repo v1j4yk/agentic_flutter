@@ -43,6 +43,7 @@ final class ToolSpec {
     this.isReadOnly = true,
     this.isIdempotent = true,
     this.requiresApproval = false,
+    this.returnsUntrustedContent = false,
     Set<String> tags = const <String>{},
     this.timeout,
     this.version = '1.0.0',
@@ -114,6 +115,20 @@ final class ToolSpec {
   /// money, sends a message, or changes state a user would want to see first.
   final bool requiresApproval;
 
+  /// Whether this tool returns text the application did not write.
+  ///
+  /// Set it on anything that reads the outside world or a user's stored
+  /// material: search results, web pages, retrieved documents, email, remote
+  /// MCP servers, memories saved in earlier conversations. Any of them can
+  /// contain instructions a model may follow.
+  ///
+  /// Once such a tool has returned in a run, `ToolExecutor` treats every tool
+  /// that is not read-only as needing a person's approval, according to its
+  /// `UntrustedContentPolicy`, and marks the untrusted result so the model can
+  /// tell data from instructions. It does not try to detect an injection —
+  /// nothing reliably can — it makes sure one cannot act unseen.
+  final bool returnsUntrustedContent;
+
   /// Free-form labels, used to select subsets of a registry.
   ///
   /// Presenting a model with forty tools measurably degrades its choices; tags
@@ -155,6 +170,7 @@ final class ToolSpec {
     'isReadOnly': isReadOnly,
     'isIdempotent': isIdempotent,
     'requiresApproval': requiresApproval,
+    'returnsUntrustedContent': returnsUntrustedContent ? true : null,
     'tags': tags.isEmpty ? null : (tags.toList()..sort()),
     'timeoutMs': timeout?.inMilliseconds,
     'version': version,
@@ -172,6 +188,7 @@ final class ToolSpec {
     bool? isReadOnly,
     bool? isIdempotent,
     bool? requiresApproval,
+    bool? returnsUntrustedContent,
     Set<String>? tags,
     Duration? timeout,
     String? version,
@@ -184,6 +201,8 @@ final class ToolSpec {
     isReadOnly: isReadOnly ?? this.isReadOnly,
     isIdempotent: isIdempotent ?? this.isIdempotent,
     requiresApproval: requiresApproval ?? this.requiresApproval,
+    returnsUntrustedContent:
+        returnsUntrustedContent ?? this.returnsUntrustedContent,
     tags: tags ?? this.tags,
     timeout: timeout ?? this.timeout,
     version: version ?? this.version,

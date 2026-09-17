@@ -138,6 +138,30 @@ class ToolApprovalSheet extends StatelessWidget {
                 ),
               ),
             ],
+            // The one sentence that lets a person catch an instruction they
+            // never gave. Without it this sheet looks identical whether the
+            // user asked for the action or a retrieved document did.
+            if (request.followsUntrustedContent) ...<Widget>[
+              const SizedBox(height: 12),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    'Requested after reading content from '
+                    '${request.untrustedSources.join(', ')}. That content was '
+                    'not written by you and could contain instructions. Only '
+                    'allow this if it is what you asked for.',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              ),
+            ],
             if (showArguments && request.arguments.isNotEmpty) ...<Widget>[
               const SizedBox(height: 16),
               Text('Arguments', style: theme.textTheme.labelLarge),

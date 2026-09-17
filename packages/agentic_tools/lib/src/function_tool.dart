@@ -54,6 +54,7 @@ final class FunctionTool implements Tool {
     bool isReadOnly = true,
     bool isIdempotent = true,
     bool requiresApproval = false,
+    bool returnsUntrustedContent = false,
     Set<String> tags = const <String>{},
     Duration? timeout,
     String version = '1.0.0',
@@ -66,6 +67,7 @@ final class FunctionTool implements Tool {
          isReadOnly: isReadOnly,
          isIdempotent: isIdempotent,
          requiresApproval: requiresApproval,
+         returnsUntrustedContent: returnsUntrustedContent,
          tags: tags,
          timeout: timeout,
          version: version,
@@ -98,6 +100,7 @@ final class FunctionTool implements Tool {
     bool isReadOnly = true,
     bool isIdempotent = true,
     bool requiresApproval = false,
+    bool returnsUntrustedContent = false,
     Set<String> tags = const <String>{},
     Duration? timeout,
   }) => FunctionTool(
@@ -107,6 +110,7 @@ final class FunctionTool implements Tool {
     isReadOnly: isReadOnly,
     isIdempotent: isIdempotent,
     requiresApproval: requiresApproval,
+    returnsUntrustedContent: returnsUntrustedContent,
     tags: tags,
     timeout: timeout,
     handler: (invocation) async =>
