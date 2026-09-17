@@ -239,16 +239,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: dart-lang/setup-dart@v1
+      # Flutter, not only Dart: the signature snapshot resolves
+      # agentic_flutter, whose types come from the Flutter SDK.
+      - uses: subosito/flutter-action@v2
         with:
-          sdk: stable
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          channel: stable
+          cache: true
       - run: dart pub get
-      - name: Compare against api/
+      - run: flutter pub get
+        working-directory: packages/agentic_flutter
+      - name: Compare names and signatures against api/
         run: dart run packages/agentic_benchmark/bin/api_snapshot.dart
-      # The name-level snapshot above cannot see a parameter changing kind, so
-      # it passed the 0.2 change to `memoryTools(store:)` without a murmur.
-      # What protects users from that class of break is a `dart fix` rule, and
-      # a rule is only worth shipping if something proves it still matches.
+      # Signatures show a parameter changing kind, as `memoryTools(store:)` did
+      # in 0.2. What protects users from that break is a `dart fix` rule, and a
+      # rule is only worth shipping if something proves it still matches.
       - name: dart fix rules migrate their golden inputs
         run: |
           for dir in packages/*/test_fixes; do

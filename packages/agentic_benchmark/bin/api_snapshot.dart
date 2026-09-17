@@ -8,9 +8,10 @@
 // visible in CI.
 import 'dart:io';
 
+import 'package:agentic_benchmark/src/api_signatures.dart';
 import 'package:agentic_benchmark/src/api_surface.dart';
 
-void main(List<String> arguments) {
+Future<void> main(List<String> arguments) async {
   final write = arguments.contains('--write');
 
   if (!Directory('packages').existsSync()) {
@@ -55,10 +56,50 @@ void main(List<String> arguments) {
       'them.',
     );
   }
+  // Signatures: what each declaration promises, not only that it exists.
+  // An unresolved package reads every type it cannot find as `InvalidType`,
+  // which would look like a change to every signature that mentions one.
+  final unresolved = <String>[
+    for (final entry in trackedPackages.entries)
+      if (!File(packageConfigFor(entry.value)).existsSync()) entry.key,
+  ];
+  if (unresolved.isNotEmpty) {
+    stderr.writeln(
+      'Cannot read signatures for ${unresolved.join(', ')}: run `dart pub get` '
+      'at the root and `flutter pub get` in packages/agentic_flutter first.',
+    );
+    exitCode = 1;
+    return;
+  }
+  final signatures = await readSignatures(trackedPackages);
+  final signatureDiffs = <SignatureDiff>[];
+  for (final entry in signatures.entries) {
+    final file = File(signaturePathFor(entry.key));
+    if (write) {
+      file.writeAsStringSync(entry.value.render());
+      stdout.writeln('${entry.key}: ${entry.value.lines.length} declarations');
+      continue;
+    }
+    if (!file.existsSync()) {
+      stderr.writeln(
+        'No signature snapshot for ${entry.key}. Record one with --write.',
+      );
+      exitCode = 1;
+      continue;
+    }
+    signatureDiffs.add(
+      SignatureDiff(
+        before: ApiSignatures.parse(entry.key, file.readAsStringSync()),
+        after: entry.value,
+      ),
+    );
+  }
+
   if (write) return;
 
+  final changedSignatures = signatureDiffs.where((d) => d.hasChanges).toList();
   final changed = diffs.where((d) => d.hasChanges).toList();
-  if (changed.isEmpty) {
+  if (changed.isEmpty && changedSignatures.isEmpty) {
     stdout.writeln(
       'The public API is unchanged across ${diffs.length} package(s).',
     );
@@ -67,6 +108,9 @@ void main(List<String> arguments) {
 
   stdout.writeln('The public API changed:');
   for (final diff in changed) {
+    stdout.writeln(diff.render());
+  }
+  for (final diff in changedSignatures) {
     stdout.writeln(diff.render());
   }
   stdout

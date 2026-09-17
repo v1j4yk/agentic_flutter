@@ -23,6 +23,9 @@ dependencies:
   agentic_vector: ^0.1.0
   agentic_workflow: ^0.1.0
   meta: ^1.16.0
+  # Resolves barrels for signature snapshots. Already in the workspace
+  # through the tool generator, so this adds nothing to the resolution.
+  analyzer: ^14.1.0
 
 executables:
   api_snapshot:

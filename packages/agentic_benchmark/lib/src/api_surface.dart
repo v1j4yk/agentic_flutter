@@ -13,14 +13,11 @@
 ///
 /// # What it reads, and what it does not
 ///
-/// The barrel files' `export ... show ...` clauses. That is deliberately shallow
-/// — it catches a name appearing, disappearing or changing, which is the class
-/// of change that breaks a build. It does *not* catch a parameter becoming
-/// required or a return type narrowing, which are equally breaking and would
-/// need a real element model to see.
-///
-/// Half a guard rail that costs a hundred lines beats a whole one nobody
-/// builds, as long as the half is named. This is that naming.
+/// The barrel files' `export ... show ...` clauses: a name appearing,
+/// disappearing or changing. A parameter becoming required or a return type
+/// narrowing is equally breaking and needs the element model to see; that is
+/// `api_signatures.dart`, which writes the `.signatures.txt` beside each file
+/// here.
 library;
 
 import 'dart:io';
@@ -203,3 +200,15 @@ const Map<String, String> trackedPackages = <String, String>{
 
 /// Where a package's committed snapshot lives, relative to the repository root.
 String snapshotPathFor(String package) => 'api/$package.txt';
+
+/// The package config that resolves [barrelPath]'s package.
+///
+/// Workspace members share the root one; `agentic_flutter` is not a member and
+/// has its own, created by `flutter pub get`.
+String packageConfigFor(String barrelPath) =>
+    barrelPath.startsWith('packages/agentic_flutter/')
+    ? 'packages/agentic_flutter/.dart_tool/package_config.json'
+    : '.dart_tool/package_config.json';
+
+/// Where a package's committed signature snapshot lives.
+String signaturePathFor(String package) => 'api/$package.signatures.txt';

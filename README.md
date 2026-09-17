@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-1072%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-1081%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -478,7 +478,7 @@ bill. A changed prompt fails replay and names what changed. Its evals score
 behaviour you can't check for an exact string: was the right tool called, was
 the wrong one avoided, and how often over repeated runs.
 
-Current coverage: **1072 tests**, zero analyzer issues under a strict lint set
+Current coverage: **1081 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring
@@ -536,8 +536,27 @@ surface.
 
 ## The public API is committed
 
-`api/agentic_core.txt` and its siblings list every exported name, and CI fails
-when the code and the file disagree.
+`api/agentic_core.txt` lists every exported name, and
+`api/agentic_core.signatures.txt` every public declaration with its full
+signature: constructor parameters and whether they are required, defaults,
+return types, class modifiers, enum values. CI fails when the code and the
+files disagree, and the failure shows the old and new signature side by side:
+
+```text
+agentic_tools signatures:
+  ~ ToolFunction.new
+      was: const ToolFunction({..., bool requiresApproval = false, ...})
+      now: const ToolFunction({..., required bool requiresApproval, ...})
+```
+
+To see everything that changed since a release, compare against a checkout of
+it:
+
+```sh
+git worktree add ../release release/0.1.x
+(cd ../release && dart pub get && cd packages/agentic_flutter && flutter pub get)
+dart run packages/agentic_benchmark/tool/diff_release.dart ../release
+```
 
 ```sh
 dart run melos run api          # check
