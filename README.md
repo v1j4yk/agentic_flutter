@@ -88,7 +88,7 @@ how outages become incidents.
 | **`agentic_vector`** | ✅ Complete | Vector store port, metadata filtering, exact in-process search with snapshots, Qdrant adapter, embedding index |
 | **`agentic_rag`** | ✅ Complete | Loading, chunking, indexing, dense and BM25 retrieval, rank fusion, re-ranking, cited answers, retrieval tools |
 | **`agentic_mcp`** | ✅ Complete | Model Context Protocol client and server; remote tools as ordinary tools; stdio, HTTP and in-process transports |
-| **`agentic_sqlite`** | 🧪 Unreleased | On-device persistence: SQLite-backed vector, memory, conversation and workflow-snapshot stores that survive restarts |
+| **`agentic_sqlite`** | ✅ Complete | On-device persistence: SQLite-backed vector, memory, conversation and workflow-snapshot stores that survive restarts |
 | **`agentic_flutter`** | ✅ Complete | The umbrella; app-lifetime runtime, lifecycle-bound cancellation, device capabilities as tools, secret storage, chat, approval and trace widgets |
 
 Applications depend on `agentic_flutter`, which re-exports the rest. Plugin

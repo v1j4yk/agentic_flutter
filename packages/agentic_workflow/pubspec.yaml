@@ -2,7 +2,7 @@ name: agentic_workflow
 description: >-
   A typed graph engine for agent workflows: validation before execution,
   branching, parallelism, loops, budgets, human approval and resumable runs.
-version: 0.1.1
+version: 0.1.2
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_workflow/README.md

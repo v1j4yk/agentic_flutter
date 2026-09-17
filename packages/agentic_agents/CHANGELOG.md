@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - `SessionStore`, with `SessionSummary` and `InMemorySessionStore`: where
   conversations are kept between launches. `list()` returns summaries, newest

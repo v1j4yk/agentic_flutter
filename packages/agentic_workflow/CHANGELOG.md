@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - `WorkflowSnapshot` is no longer `@experimental`. Its JSON carries a
   `formatVersion`; a snapshot from a newer format is refused with a

@@ -1,6 +1,8 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
+
+Initial release. The version follows the sibling packages it ships with.
 
 - `sessionStore()` and `snapshotStore()`: durable `SessionStore` and
   `WorkflowSnapshotStore`, added in schema 2. Files from schema 1 upgrade in
