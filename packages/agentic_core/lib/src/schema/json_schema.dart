@@ -1025,7 +1025,14 @@ final class JsonSchema {
 
     for (final entry in properties.entries) {
       final child = entry.value;
-      if (source.containsKey(entry.key)) {
+      // An explicit null for an optional, non-nullable property means "not
+      // given": models send it for parameters they chose not to fill, and
+      // rejecting the whole call for that fails a request that was fine.
+      final omitted =
+          source[entry.key] == null &&
+          !child.nullable &&
+          !requiredProperties.contains(entry.key);
+      if (source.containsKey(entry.key) && !omitted) {
         result[entry.key] = child.coerce(source[entry.key]);
       } else if (child.defaultValue != null) {
         result[entry.key] = child.defaultValue;
@@ -1034,7 +1041,8 @@ final class JsonSchema {
     // Unknown keys are preserved so that validation can report them. Dropping
     // them here would turn a violation into a silent data loss.
     for (final entry in source.entries) {
-      result.putIfAbsent(entry.key, () => entry.value);
+      if (properties.containsKey(entry.key)) continue;
+      result[entry.key] = entry.value;
     }
     return result;
   }

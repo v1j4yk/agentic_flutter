@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `@ToolFunction` and `@ToolParam` annotations, read by the new
+  `agentic_tools_generator` to generate tools from ordinary functions and
+  methods. `isReadOnly` is required, so a tool that changes state is never
+  read-only by default and exempt from untrusted-content approval.
+
 - **Untrusted content.** `ToolSpec.returnsUntrustedContent` marks a tool whose
   output the application did not write. Once one returns successfully,
   `ToolExecutor` treats every tool that is not read-only according to

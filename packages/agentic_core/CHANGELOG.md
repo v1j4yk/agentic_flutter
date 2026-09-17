@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `JsonSchema.coerce` treats `null` for an optional, non-nullable property as
+  not given, applying the default if there is one. Models send `null` for
+  parameters they skip, and `ToolExecutor` used to reject those calls. `null`
+  for a required property is still rejected.
+
 - `UntrustedContentLedger` on `AgenticContext.untrustedContent`: which tools
   brought text into a run that the application did not write. Shared by every
   scope in a run, and impossible to clear.

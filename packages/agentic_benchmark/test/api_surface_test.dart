@@ -172,6 +172,33 @@ export 'src/b.dart'
       );
     });
 
+    test('never export one name from two packages', () {
+      // `agentic_flutter` re-exports every package, so two packages exporting
+      // the same name make every app that imports it fail with an ambiguous
+      // import. Found the hard way: an annotation briefly shared the name of
+      // agentic_agents' `AgentTool`.
+      final owners = <String, List<String>>{};
+      for (final entry in trackedPackages.entries) {
+        final surface = ApiSurface.fromBarrel(
+          entry.key,
+          '$root/${entry.value}',
+        );
+        for (final name in surface.names) {
+          if (name.startsWith(kUnshownMarker)) continue;
+          (owners[name] ??= <String>[]).add(entry.key);
+        }
+      }
+      final clashes = {
+        for (final entry in owners.entries)
+          if (entry.value.length > 1) entry.key: entry.value,
+      };
+      expect(
+        clashes,
+        isEmpty,
+        reason: 'Rename one side of each clash: $clashes',
+      );
+    });
+
     test('describe no wildcard export outside an umbrella', () {
       for (final entry in trackedPackages.entries) {
         final surface = ApiSurface.fromBarrel(

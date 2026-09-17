@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-1034%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-1072%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -89,6 +89,7 @@ how outages become incidents.
 | **`agentic_rag`** | ✅ Complete | Loading, chunking, indexing, dense and BM25 retrieval, rank fusion, re-ranking, cited answers, retrieval tools |
 | **`agentic_mcp`** | ✅ Complete | Model Context Protocol client and server; remote tools as ordinary tools; stdio, HTTP and in-process transports |
 | **`agentic_sqlite`** | ✅ Complete | On-device persistence: SQLite-backed vector, memory, conversation and workflow-snapshot stores that survive restarts |
+| **`agentic_tools_generator`** | ✅ Complete | `@ToolFunction` code generation: tools, schemas and argument conversion from ordinary Dart functions and methods, checked at build time |
 | **`agentic_test`** | ✅ Complete | Testing agents: record real model answers once and replay them offline; evals with tool, answer, budget and model-graded checks, and pass rates |
 | **`agentic_flutter`** | ✅ Complete | The umbrella; app-lifetime runtime, lifecycle-bound cancellation, device capabilities as tools, secret storage, chat, approval and trace widgets |
 
@@ -355,6 +356,25 @@ final messages = await executor.executeAllAsMessages(
 );
 ```
 
+Or write the function and let `agentic_tools_generator` write the tool. The
+schema comes from the parameter list, the description from the doc comment,
+and a parameter type or return value a model can't use fails the build
+instead of the call:
+
+```dart
+part 'research_tools.g.dart';
+
+/// Searches the public web and returns the top results with titles, URLs and
+/// snippets. Use for current events and facts that may have changed.
+@ToolFunction(isReadOnly: true, returnsUntrustedContent: true)
+Future<List<String>> searchWeb(
+  @ToolParam("The query, in the user's words") String query, {
+  int limit = 5,
+}) => api.search(query, limit: limit);
+
+// `dart run build_runner build` generates `searchWebTool`.
+```
+
 Setting up a run, with everything observable:
 
 ```dart
@@ -458,7 +478,7 @@ bill. A changed prompt fails replay and names what changed. Its evals score
 behaviour you can't check for an exact string: was the right tool called, was
 the wrong one avoided, and how often over repeated runs.
 
-Current coverage: **1034 tests**, zero analyzer issues under a strict lint set
+Current coverage: **1072 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring

@@ -1,0 +1,20 @@
+builders:
+  agent_tool:
+    import: "package:agentic_tools_generator/builder.dart"
+    builder_factories: ["agentToolBuilder"]
+    build_extensions: {".dart": [".agent_tool.g.part"]}
+    auto_apply: dependents
+    build_to: cache
+    applies_builders: ["source_gen:combining_builder"]
+
+# This package's own fixtures, which the tests compile and run.
+targets:
+  $default:
+    builders:
+      agentic_tools_generator:agent_tool:
+        enabled: true
+        generate_for:
+          - test/fixtures/**
+      source_gen:combining_builder:
+        generate_for:
+          - test/fixtures/**

@@ -1,0 +1,24 @@
+# Tests inherit the package contract but are exempt from a few rules that only
+# make sense for a published API surface:
+#
+#   * `public_member_api_docs` — a test's `main` and its helpers are not API.
+#   * `avoid_positional_boolean_parameters` — test fixtures read better with
+#     them, and nobody calls a fixture from another package.
+#   * `cascade_invocations` — arrange/act/assert reads better as separate
+#     statements than as a cascade.
+#   * the `prefer_const_*` family — a test asserting on immutability is clearer
+#     when the literals under test look like the ones a caller would write.
+include: ../analysis_options.yaml
+
+analyzer:
+  errors:
+    public_member_api_docs: ignore
+
+linter:
+  rules:
+    public_member_api_docs: false
+    avoid_positional_boolean_parameters: false
+    cascade_invocations: false
+    prefer_const_constructors: false
+    prefer_const_literals_to_create_immutables: false
+    prefer_const_declarations: false

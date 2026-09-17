@@ -29,6 +29,7 @@
 /// tool system without pulling in a UI framework.
 library;
 
+export 'src/annotations.dart' show ToolFunction, ToolParam;
 export 'src/function_tool.dart'
     show DelegatingTool, FunctionTool, RenamedTool, ToolHandler;
 export 'src/tool.dart'

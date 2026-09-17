@@ -204,6 +204,32 @@ void main() {
       expect(searchSchema.validate(coerced).isValid, isTrue);
     });
 
+    test('treats null for an optional property as not given', () {
+      // Models send null for parameters they chose not to fill.
+      final coerced =
+          searchSchema.coerce({'query': 'x', 'limit': null, 'safe': null})!
+              as Map;
+
+      expect(coerced['limit'], 10, reason: 'the default applies');
+      expect(coerced.containsKey('safe'), isFalse);
+      expect(searchSchema.validate(coerced).isValid, isTrue);
+    });
+
+    test('still rejects null for a required property', () {
+      final coerced = searchSchema.coerce({'query': null});
+      expect(searchSchema.validate(coerced).isValid, isFalse);
+    });
+
+    test('keeps null where the property allows it', () {
+      final schema = JsonSchema.object(
+        properties: {'note': JsonSchema.string().asNullable()},
+      );
+      final coerced = schema.coerce({'note': null})! as Map;
+      expect(coerced.containsKey('note'), isTrue);
+      expect(coerced['note'], isNull);
+      expect(schema.validate(coerced).isValid, isTrue);
+    });
+
     test('repairs a stringified boolean', () {
       expect(JsonSchema.boolean().coerce('true'), isTrue);
       expect(JsonSchema.boolean().coerce('false'), isFalse);
