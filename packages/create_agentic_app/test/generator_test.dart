@@ -182,6 +182,57 @@ void main() {
       expect(local, contains('path: /some/where/agentic_flutter'));
     });
 
+    test('a local framework brings its sibling packages from the same '
+        'tree', () {
+      // Without this the template check compiled the local agentic_flutter
+      // against the siblings published on pub.dev, and a change spanning two
+      // packages failed only when a user generated a project.
+      final framework = Directory(pathTo('framework/packages/agentic_flutter'))
+        ..createSync(recursive: true);
+      File(
+        '${framework.path}${Platform.pathSeparator}pubspec_overrides.yaml',
+      ).writeAsStringSync(
+        'dependency_overrides:\n'
+        '  agentic_core:\n'
+        '    path: ../agentic_core\n'
+        '  agentic_tools:\n'
+        '    path: ../agentic_tools\n',
+      );
+
+      final result = generate(
+        name: 'my_app',
+        directory: pathTo('with_siblings'),
+        frameworkPath: framework.path,
+      );
+      expect(result.files, contains('pubspec_overrides.yaml'));
+
+      final overrides = File(
+        '${pathTo('with_siblings')}${Platform.pathSeparator}'
+        'pubspec_overrides.yaml',
+      ).readAsStringSync();
+      final root = Directory(
+        pathTo('framework/packages'),
+      ).absolute.path.replaceAll(r'\', '/');
+      expect(
+        overrides,
+        contains('  agentic_core:\n    path: $root/agentic_core'),
+      );
+      expect(
+        overrides,
+        contains('  agentic_tools:\n    path: $root/agentic_tools'),
+      );
+      expect(overrides, isNot(contains('..')));
+    });
+
+    test('a published framework needs no overrides', () {
+      final result = generate(
+        name: 'my_app',
+        directory: pathTo('no_siblings'),
+        frameworkPath: '/some/where/agentic_flutter',
+      );
+      expect(result.files, isNot(contains('pubspec_overrides.yaml')));
+    });
+
     test('normalises a Windows path into the pubspec', () {
       // A backslash in YAML is an escape, so a Windows path written verbatim
       // produces a pubspec that does not parse.

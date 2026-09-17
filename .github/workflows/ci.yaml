@@ -280,27 +280,15 @@ jobs:
           cache: true
       - run: dart pub get
 
+      # With --framework-path the generator also writes pubspec_overrides.yaml,
+      # pointing every sibling package at this checkout, so the project is
+      # compiled against the working tree rather than against pub.dev.
       - name: Generate a project
         run: >-
           dart run packages/create_agentic_app/bin/create_agentic_app.dart
           generated_probe
           --directory="$RUNNER_TEMP/generated_probe"
           --framework-path="$GITHUB_WORKSPACE/packages/agentic_flutter"
-
-      - name: Point it at this checkout
-        # The generated pubspec depends on `agentic_flutter` by path, but that
-        # package in turn depends on its nine siblings by version — and none of
-        # them are published yet.
-        run: |
-          cat > "$RUNNER_TEMP/generated_probe/pubspec_overrides.yaml" <<'YAML'
-          dependency_overrides:
-          YAML
-          for pkg in agents core llm mcp memory rag tools vector workflow; do
-            {
-              echo "  agentic_$pkg:"
-              echo "    path: $GITHUB_WORKSPACE/packages/agentic_$pkg"
-            } >> "$RUNNER_TEMP/generated_probe/pubspec_overrides.yaml"
-          done
 
       - name: Analyse it
         working-directory: ${{ runner.temp }}/generated_probe

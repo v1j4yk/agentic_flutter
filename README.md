@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-1081%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-1083%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -478,7 +478,7 @@ bill. A changed prompt fails replay and names what changed. Its evals score
 behaviour you can't check for an exact string: was the right tool called, was
 the wrong one avoided, and how often over repeated runs.
 
-Current coverage: **1081 tests**, zero analyzer issues under a strict lint set
+Current coverage: **1083 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring
@@ -611,6 +611,13 @@ success at every step.
 If a release fails part-way, resume rather than restart. `--from=agentic_rag`
 skips what is already live; re-running the whole order instead fails on "version
 already exists" and strands everything after it.
+
+## Upgrading
+
+From 0.1.x to 0.2.0: [doc/migration-0.2.md](doc/migration-0.2.md). One
+signature change, which `dart fix --apply` migrates, and one behaviour change
+to read about if your agent reads documents, MCP replies or memories and can
+also change things.
 
 ## Roadmap
 

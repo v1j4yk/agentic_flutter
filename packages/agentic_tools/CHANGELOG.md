@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- A call denied because no approval handler is configured now tells the model
+  that no one could be asked, instead of that the user declined. The model
+  repeats what it is told, and a user who never saw a request should not hear
+  that they refused one.
+
 - `@ToolFunction` and `@ToolParam` annotations, read by the new
   `agentic_tools_generator` to generate tools from ordinary functions and
   methods. `isReadOnly` is required, so a tool that changes state is never

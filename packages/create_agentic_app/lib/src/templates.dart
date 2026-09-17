@@ -229,12 +229,22 @@ a sheet asks before it runs. Anything that changes something outside the app
 should do the same — and note that the executor *denies* a gated tool when no
 approval handler is configured, rather than running it.
 
+Mark each tool honestly with `isReadOnly`. Once the agent has read content you
+did not write — a searched document, an MCP server's reply, a recalled memory —
+every tool that is not read-only needs approval, because that content can
+contain instructions the model might follow.
+
 ## Next
 
-- Add a tool in `lib/tools.dart` — the agent picks it up automatically.
-- Give it memory: `RecallingHistory` over an `InMemoryMemoryStore`.
-- Give it documents: `RagIndexer` and `RagPipeline`, then `searchTool`.
+- Add a tool in `lib/tools.dart` — the agent picks it up automatically. With
+  `agentic_tools_generator`, a function annotated `@ToolFunction` becomes a
+  tool, schema and all.
+- Give it memory: `RecallingHistory` over an `InMemoryMemoryStore`, or
+  `agentic_sqlite` to keep it across restarts.
+- Give it documents: `RagStack`, then its `searchTool`.
 - Connect an MCP server: `McpClient` plus `registerMcpTools`.
+- Test it against a real model without paying on every run: `agentic_test`
+  records the model's answers once and replays them.
 ''';
 
 const String _main = r'''
@@ -353,7 +363,7 @@ Future<Agent?> buildAgent({
     // Not optional. Every individual call succeeds; only the aggregate is
     // wrong, which is why the bound lives in the loop rather than in a monitor.
     budget: AgentBudget.interactive,
-    executor: ToolExecutor(tools: tools.all, approvalHandler: approvals),
+    approvalHandler: approvals,
   );
 }
 

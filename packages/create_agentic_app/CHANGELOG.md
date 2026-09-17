@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+- The template passes `approvalHandler:` to `ToolCallingAgent` directly, and its
+  README explains `isReadOnly` after untrusted content and points to
+  `@ToolFunction`, `agentic_sqlite`, `RagStack` and `agentic_test`.
+- `--framework-path` also writes `pubspec_overrides.yaml`, pointing every
+  sibling package at the same working tree. A path to `agentic_flutter` alone
+  compiled it against the siblings on pub.dev, so a change spanning two
+  packages failed in a generated project and nowhere else.
+
 ## 0.1.1
 
 - Added `example/`, which the package had been missing. Most people meet this

@@ -352,12 +352,21 @@ final class ToolExecutor {
       );
       if (!approved) {
         span.setAttribute('tool.approval', 'denied');
+        // Without a handler nobody was asked, so the model must not be told
+        // the user declined: it would repeat that to the user, who never saw
+        // a request.
+        final reason = approvalHandler != null
+            ? 'The user declined to run `${spec.name}`. Do not retry it; '
+                  'continue without it or ask the user what they would prefer.'
+            : '`${spec.name}` needs a person to approve it'
+                  '${escalated ? ' because this conversation has read content from ${taint.sources.join(', ')}' : ''}'
+                  ', and no one can be asked here, so it did not run. Do not '
+                  'retry it; tell the user what you would have done.';
         return _fail(
           call,
           context,
           ToolFailureKind.approvalDenied,
-          'The user declined to run `${spec.name}`. Do not retry it; continue '
-          'without it or ask the user what they would prefer.',
+          reason,
           started: started,
         );
       }

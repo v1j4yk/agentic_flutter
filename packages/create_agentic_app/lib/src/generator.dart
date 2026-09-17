@@ -71,11 +71,15 @@ GenerationResult generate({
     }
   }
 
-  final files = buildProject(
-    name: name,
-    provider: provider,
-    dependency: _dependencyFor(frameworkPath),
-  );
+  final files = <String, String>{
+    ...buildProject(
+      name: name,
+      provider: provider,
+      dependency: _dependencyFor(frameworkPath),
+    ),
+    if (frameworkPath != null)
+      'pubspec_overrides.yaml': ?_siblingOverridesFor(frameworkPath),
+  };
 
   try {
     for (final entry in files.entries) {
@@ -99,6 +103,48 @@ GenerationResult generate({
 /// A path dependency when [frameworkPath] is given, which is how the framework's
 /// own CI generates a project and proves the template still compiles against
 /// the code in the working tree rather than against whatever is on pub.dev.
+/// Points the framework's sibling packages at the same working tree.
+///
+/// A path dependency on `agentic_flutter` alone is not enough: pub applies
+/// only the *root* package's overrides, so every sibling would come from
+/// pub.dev, and a change spanning two packages would be compiled against the
+/// published half. The framework's own `pubspec_overrides.yaml` already lists
+/// the siblings; this copies it with each path made absolute.
+///
+/// Returns `null` when the framework has no overrides file, as a copy of the
+/// published package does not.
+String? _siblingOverridesFor(String frameworkPath) {
+  final framework = frameworkPath.replaceAll(r'\', '/');
+  final source = File('$framework/pubspec_overrides.yaml');
+  if (!source.existsSync()) return null;
+
+  final entries = RegExp(
+    r'^  ([a-z_]+):\s*\n\s+path:\s*(\S+)\s*$',
+    multiLine: true,
+  ).allMatches(source.readAsStringSync().replaceAll('\r\n', '\n'));
+  if (entries.isEmpty) return null;
+
+  final buffer = StringBuffer()
+    ..writeln('# Written by create_agentic_app --framework-path, so the')
+    ..writeln('# framework packages all come from the same working tree.')
+    ..writeln('dependency_overrides:');
+  for (final entry in entries) {
+    final relative = entry.group(2)!;
+    final absolute = Uri.directory(framework).resolve(relative).path;
+    // `Uri.path` gives `/D:/...` for a Windows drive; pub wants `D:/...`.
+    final path = RegExp('^/[A-Za-z]:').hasMatch(absolute)
+        ? absolute.substring(1)
+        : absolute;
+    final trimmed = path.endsWith('/')
+        ? path.substring(0, path.length - 1)
+        : path;
+    buffer
+      ..writeln('  ${entry.group(1)}:')
+      ..writeln('    path: $trimmed');
+  }
+  return buffer.toString();
+}
+
 String _dependencyFor(String? frameworkPath) {
   if (frameworkPath == null) return '  agentic_flutter: ^0.1.0';
   final normalised = frameworkPath.replaceAll(r'\', '/');

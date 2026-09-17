@@ -622,6 +622,10 @@ void main() {
 
       expect(result.isError, isTrue);
       expect(log, isEmpty);
+      // Nobody was asked, so the model must not be told the user said no.
+      expect(result.content, isNot(contains('declined')));
+      expect(result.content, contains('no one can be asked'));
+      expect(result.content, contains('search_notes'));
     });
 
     test('refuse denies without asking anyone', () async {
