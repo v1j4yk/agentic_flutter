@@ -84,12 +84,25 @@ final class InMemoryKeywordIndex {
   double get averageLength =>
       _chunks.isEmpty ? 0 : _totalLength / _chunks.length;
 
+  /// Chunk identifiers per document.
+  ///
+  /// Kept so that asking about one document — whether it is indexed, or
+  /// removing it — costs that document's chunks rather than a scan of every
+  /// chunk in the corpus. Re-indexing a library at startup asks once per
+  /// document, and a scan each time is quadratic in the size of the library.
+  final Map<String, Set<String>> _documents = <String, Set<String>>{};
+
   /// The indexed chunks.
   Iterable<DocumentChunk> get chunks => _chunks.values;
+
+  /// Whether any chunk of [documentId] is indexed.
+  bool containsDocument(String documentId) =>
+      _documents[documentId]?.isNotEmpty ?? false;
 
   /// Adds or replaces a chunk.
   void add(DocumentChunk chunk) {
     remove(chunk.id);
+    _documents.putIfAbsent(chunk.documentId, () => <String>{}).add(chunk.id);
     final terms = tokenise(chunk.text, minLength: minTermLength);
     if (terms.isEmpty) {
       // Still indexed, so `length` and deletion stay consistent with the vector
@@ -123,12 +136,16 @@ final class InMemoryKeywordIndex {
 
   /// Removes a chunk, returning whether it was there.
   bool remove(String id) {
-    final counts = _frequencies.remove(id);
-    if (counts == null) {
-      _chunks.remove(id);
-      return false;
+    final removedChunk = _chunks.remove(id);
+    if (removedChunk != null) {
+      final siblings = _documents[removedChunk.documentId];
+      siblings?.remove(id);
+      if (siblings != null && siblings.isEmpty) {
+        _documents.remove(removedChunk.documentId);
+      }
     }
-    _chunks.remove(id);
+    final counts = _frequencies.remove(id);
+    if (counts == null) return false;
     _totalLength -= _lengths.remove(id) ?? 0;
     for (final term in counts.keys) {
       final postings = _postings[term];
@@ -144,10 +161,7 @@ final class InMemoryKeywordIndex {
 
   /// Removes every chunk of [documentId], returning how many were removed.
   int removeDocument(String documentId) {
-    final doomed = <String>[
-      for (final chunk in _chunks.values)
-        if (chunk.documentId == documentId) chunk.id,
-    ];
+    final doomed = List<String>.of(_documents[documentId] ?? const <String>{});
     for (final id in doomed) {
       remove(id);
     }
@@ -156,6 +170,7 @@ final class InMemoryKeywordIndex {
 
   /// Empties the index.
   void clear() {
+    _documents.clear();
     _chunks.clear();
     _frequencies.clear();
     _lengths.clear();

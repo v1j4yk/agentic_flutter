@@ -559,11 +559,9 @@ void main() {
       expect(restored.title, 'Guide');
       expect(restored.heading, 'Refunds');
       expect(restored.text, 'Refunds take five days.');
-      expect(
-        restored.metadata,
-        <String, Object?>{'team': 'billing'},
-        reason: 'reserved keys must not leak back to the caller',
-      );
+      expect(restored.metadata, <String, Object?>{
+        'team': 'billing',
+      }, reason: 'reserved keys must not leak back to the caller');
     });
 
     test('refuses to invent a document for a foreign record', () {
@@ -1310,6 +1308,302 @@ void main() {
     });
   });
 
+  group('streaming answers', () {
+    List<RetrievedChunk> passages() => <RetrievedChunk>[
+      RetrievedChunk(
+        chunk: chunkOf(
+          'handbook.md#1',
+          text: 'Refunds are processed within thirty days.',
+          documentId: 'handbook.md',
+          index: 1,
+          title: 'Handbook',
+        ),
+        score: 0.9,
+      ),
+    ];
+
+    // The marker is split across two deltas on purpose: citations can only be
+    // resolved from finished text, which is why stream() accumulates it.
+    FakeChatModel streamingModel() => FakeChatModel(
+      turns: <FakeTurn>[
+        FakeTurn.chunks(const <ChatChunk>[
+          ChatChunk(textDelta: 'Within thirty days '),
+          ChatChunk(textDelta: '['),
+          ChatChunk(textDelta: '1].'),
+          ChatChunk(finishReason: FinishReason.stop),
+        ]),
+      ],
+    );
+
+    test('sources first, then text, then the cited answer', () async {
+      final pipeline = RagPipeline(
+        retriever: StubRetriever(passages()),
+        model: streamingModel(),
+      );
+
+      final events = await pipeline
+          .stream('how long do refunds take?')
+          .toList();
+
+      expect(events.first, isA<RagSourcesReady>());
+      expect((events.first as RagSourcesReady).context.chunks, hasLength(1));
+      expect(events.last, isA<RagAnswerCompleted>());
+      expect(events.whereType<RagSourcesReady>(), hasLength(1));
+      expect(events.whereType<RagAnswerCompleted>(), hasLength(1));
+
+      final text = events.whereType<RagAnswerDelta>().map((e) => e.text).join();
+      expect(text, 'Within thirty days [1].');
+
+      final answer = (events.last as RagAnswerCompleted).answer;
+      expect(answer.text, text);
+      expect(answer.citations.single.chunkId, 'handbook.md#1');
+    });
+
+    test('the streamed answer matches the generated one', () async {
+      // stream() and answer() share their tail, so a streamed answer cannot
+      // cite or report differently from a generated one.
+      final bus = BroadcastEventBus();
+      final generated = <AnswerGenerated>[];
+      bus.on<AnswerGenerated>().listen(generated.add);
+      final context = AgenticContext.root(events: bus);
+
+      final streamed = await RagPipeline(
+        retriever: StubRetriever(passages()),
+        model: streamingModel(),
+      ).stream('q', context: context).last;
+      final answered = await RagPipeline(
+        retriever: StubRetriever(passages()),
+        model: FakeChatModel.text('Within thirty days [1].'),
+      ).answer('q', context: context);
+      await Future<void>.delayed(Duration.zero);
+
+      final fromStream = (streamed as RagAnswerCompleted).answer;
+      expect(fromStream.text, answered.text);
+      expect(
+        fromStream.citations.map((c) => c.chunkId),
+        answered.citations.map((c) => c.chunkId),
+      );
+      expect(generated, hasLength(2), reason: 'both report AnswerGenerated');
+      expect(generated.first.citationsUsed, generated.last.citationsUsed);
+      await bus.dispose();
+    });
+
+    test('without a model it says so', () {
+      final pipeline = RagPipeline(retriever: StubRetriever(passages()));
+      expect(
+        () => pipeline.stream('q').toList(),
+        throwsA(isA<AgenticException>()),
+      );
+    });
+  });
+
+  group('InMemoryKeywordIndex documents', () {
+    test('knows which documents it holds, through add and remove', () {
+      final index = InMemoryKeywordIndex()
+        ..add(chunkOf('a#0', documentId: 'a', text: 'alpha beta'))
+        ..add(chunkOf('a#1', documentId: 'a', index: 1, text: 'gamma delta'))
+        ..add(chunkOf('b#0', documentId: 'b', text: 'epsilon zeta'));
+
+      expect(index.containsDocument('a'), isTrue);
+      expect(index.containsDocument('missing'), isFalse);
+
+      index.remove('a#0');
+      expect(index.containsDocument('a'), isTrue, reason: 'a#1 remains');
+      index.remove('a#1');
+      expect(index.containsDocument('a'), isFalse);
+
+      expect(index.removeDocument('b'), 1);
+      expect(index.containsDocument('b'), isFalse);
+      expect(index.length, 0);
+    });
+
+    test('a replaced chunk moving documents is tracked under the new one', () {
+      final index = InMemoryKeywordIndex()
+        ..add(chunkOf('x', documentId: 'old', text: 'alpha'))
+        ..add(chunkOf('x', documentId: 'new', text: 'alpha'));
+      expect(index.containsDocument('old'), isFalse);
+      expect(index.containsDocument('new'), isTrue);
+    });
+
+    test('clear forgets every document', () {
+      final index = InMemoryKeywordIndex()
+        ..add(chunkOf('a#0', documentId: 'a', text: 'alpha'))
+        ..clear();
+      expect(index.containsDocument('a'), isFalse);
+    });
+  });
+
+  group('RagIndexer after a restart', () {
+    test('an unchanged document still reaches a fresh keyword index', () async {
+      // The bug: the vector store is durable, the keyword index is not. After
+      // a restart every document is skipped as unchanged, and a skip used to
+      // return before the keyword index saw the chunks — hybrid search quietly
+      // lost its lexical half.
+      final (:index, :store) = await freshIndex();
+      final document = documentOf(
+        'handbook.md',
+        'Refunds are processed within thirty days.',
+      );
+      await RagIndexer(
+        index: index,
+        keywordIndex: InMemoryKeywordIndex(),
+      ).indexAll(<RagDocument>[document]);
+
+      // "Restart": same store, brand-new keyword index.
+      final keywords = InMemoryKeywordIndex();
+      final report = await RagIndexer(
+        index: EmbeddingIndex(model: BagOfWordsModel(), store: store),
+        keywordIndex: keywords,
+      ).indexAll(<RagDocument>[document]);
+
+      expect(report.skipped, <String>['handbook.md'], reason: 'no re-embed');
+      expect(keywords.containsDocument('handbook.md'), isTrue);
+      expect(
+        await KeywordRetriever(index: keywords).search('refunds'),
+        isNotEmpty,
+      );
+    });
+  });
+
+  group('RagStack', () {
+    final corpus = <RagDocument>[
+      documentOf(
+        'standup',
+        'Holding the checkout rollout until the retry fix lands.',
+        title: 'Standup',
+      ),
+      documentOf(
+        'coffee',
+        'The coffee place on Wilton Road does a good flat white.',
+        title: 'Coffee',
+      ),
+    ];
+
+    test(
+      'keyword-only needs no embedding model and searches at once',
+      () async {
+        final rag = RagStack();
+        expect(rag.mode, RagSearchMode.keyword);
+        expect(rag.embeddingIndex, isNull);
+
+        final report = await rag.index(corpus);
+        expect(report.indexed, hasLength(2));
+        expect(report.failed, isEmpty);
+
+        final hits = await rag.search('checkout rollout');
+        expect(hits.first.chunk.documentId, 'standup');
+      },
+    );
+
+    test(
+      'keyword-only re-indexing replaces a document, not duplicates it',
+      () async {
+        // A document that *shrinks*: re-indexing identical text overwrites
+        // chunks with the same ids and hides stale ones, which is how this
+        // test first passed against a stack that never removed them.
+        final rag = RagStack(
+          chunker: const RecursiveChunker(
+            options: ChunkOptions(maxChars: 40, overlapChars: 0, minChars: 0),
+          ),
+        );
+        await rag.index(<RagDocument>[
+          documentOf(
+            'long',
+            'First paragraph about refunds.\n\nSecond paragraph about '
+                'invoices.\n\nThird paragraph about shipping.',
+          ),
+        ]);
+        expect(rag.keywordIndex.length, greaterThan(1));
+
+        await rag.index(<RagDocument>[documentOf('long', 'Only refunds now.')]);
+        expect(rag.keywordIndex.length, 1);
+        expect(await rag.search('shipping'), isEmpty);
+
+        await rag.index(corpus);
+        expect(await rag.remove('standup'), greaterThan(0));
+        expect(rag.keywordIndex.containsDocument('standup'), isFalse);
+      },
+    );
+
+    test('hybrid writes both indexes and finds by either', () async {
+      final model = BagOfWordsModel();
+      final rag = RagStack(
+        embeddings: model,
+        store: InMemoryVectorStore(dimensions: model.dimensions),
+      );
+      expect(rag.mode, RagSearchMode.hybrid);
+
+      await rag.index(corpus);
+      expect(rag.keywordIndex.containsDocument('coffee'), isTrue);
+      expect(await rag.embeddingIndex!.count(), greaterThan(0));
+
+      final hits = await rag.search('flat white coffee');
+      expect(hits.first.chunk.documentId, 'coffee');
+    });
+
+    test('a store without a model, or a model without a store, is refused', () {
+      final model = BagOfWordsModel();
+      expect(
+        () => RagStack(store: InMemoryVectorStore(dimensions: 32)),
+        throwsA(isA<ConfigurationException>()),
+      );
+      expect(
+        () => RagStack(embeddings: model),
+        throwsA(isA<ConfigurationException>()),
+      );
+    });
+
+    test(
+      'answers and streams with a model, and explains without one',
+      () async {
+        final rag = RagStack(model: FakeChatModel.text('On hold [1].'));
+        await rag.index(corpus);
+        expect(rag.canAnswer, isTrue);
+
+        final answer = await rag.answer('Why is checkout on hold?');
+        expect(answer.citations.single.documentId, 'standup');
+
+        final searchOnly = RagStack();
+        expect(searchOnly.canAnswer, isFalse);
+        expect(
+          () => searchOnly.answer('anything'),
+          throwsA(isA<ConfigurationException>()),
+        );
+      },
+    );
+
+    test('its search tool uses the same index the stack writes to', () async {
+      // The mistake the stack exists to prevent: a tool over one index while
+      // documents are written to another.
+      final rag = RagStack();
+      await rag.index(corpus);
+      final tool = rag.searchTool(corpus: 'the notes');
+
+      final result = await tool.call(
+        ToolInvocation(
+          callId: 'c1',
+          toolName: tool.spec.name,
+          arguments: const <String, Object?>{'query': 'coffee'},
+          context: AgenticContext.root(),
+        ),
+      );
+      expect(result.isError, isFalse);
+      // Asserted on words in the document but not in the query. A "nothing
+      // found" reply repeats the query, so asserting on the query's own words
+      // passed against a tool searching an empty index.
+      expect(result.content, contains('flat white'));
+    });
+
+    test('disposing leaves a store it was given open', () async {
+      final model = BagOfWordsModel();
+      final store = InMemoryVectorStore(dimensions: model.dimensions);
+      final rag = RagStack(embeddings: model, store: store);
+      await rag.index(corpus);
+      await rag.dispose();
+      expect(await store.count(), greaterThan(0));
+    });
+  });
+
   group('end to end', () {
     test('ingests, retrieves and answers with a working citation', () async {
       final fresh = await freshIndex();
@@ -1387,6 +1681,21 @@ void main() {
       expect(result.isError, isFalse);
       expect(result.content, contains('[1] Policy'));
       expect(result.content, contains('thirty days'));
+    });
+
+    test('a tool description can be replaced, and defaults sensibly', () {
+      final retriever = KeywordRetriever(index: InMemoryKeywordIndex());
+      // The default keeps the corpus name and the advice to search again.
+      final byDefault = searchTool(retriever: retriever, corpus: 'the notes');
+      expect(byDefault.spec.description, contains('the notes'));
+      expect(byDefault.spec.description, contains('search again'));
+
+      // An override replaces it outright, as it does on the platform tools.
+      final custom = searchTool(
+        retriever: retriever,
+        description: 'Searches meeting notes only.',
+      );
+      expect(custom.spec.description, 'Searches meeting notes only.');
     });
 
     test('the search tool says nothing was found, in words', () async {

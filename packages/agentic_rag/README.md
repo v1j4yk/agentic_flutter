@@ -25,6 +25,51 @@ print(answer.citations.first.label); // "[1] Handbook › Refunds (handbook.md)"
 print(answer.isGrounded);            // true
 ```
 
+## Quick start: `RagStack`
+
+One constructor assembles indexing, retrieval and cited answering, and keeps
+every piece writing to and reading from the same indexes.
+
+```dart
+final rag = RagStack(
+  embeddings: GeminiEmbeddingModel(apiKey: key),   // omit both for keyword-only
+  store: InMemoryVectorStore(dimensions: 768),     // or agentic_sqlite's store
+  model: GeminiChatModel(apiKey: key),             // omit to search only
+);
+
+final report = await rag.index(documents);
+if (report.failed.isNotEmpty) showErrors(report.failed);   // see below
+
+final hits = await rag.search('why is the rollout on hold');
+final answer = await rag.answer('Why is the rollout on hold?');
+final tool = rag.searchTool(corpus: 'your saved notes');   // for an agent
+```
+
+| Given | Mode | Needs a model call to index |
+|---|---|---|
+| Nothing | `RagSearchMode.keyword` (BM25) | No |
+| `embeddings` + `store` | `RagSearchMode.hybrid` (dense + BM25, fused by rank) | Only for new or changed documents |
+
+**Check `report.failed`.** Indexing records a failed document and carries on,
+so an embedding call that fails for every document — a bad key, a retired
+model — returns a report with nothing indexed and no exception.
+
+### Streaming a cited answer
+
+```dart
+await for (final event in rag.stream(question)) {
+  switch (event) {
+    case RagSourcesReady(:final context):   showSources(context.citations);
+    case RagAnswerDelta(:final text):       appendText(text);
+    case RagAnswerCompleted(:final answer): linkCitations(answer.citations);
+  }
+}
+```
+
+Sources arrive before the first word of the answer. Citations are resolved on
+completion, because a `[1]` can be split across two deltas. Cancelling the
+subscription cancels the model request.
+
 ## The pipeline
 
 ```
@@ -150,6 +195,13 @@ written, cited answer, at the cost of a nested model call.
 * **Watch `citationsOffered` against `citationsUsed`.** A large gap means
   over-fetching: every uncited passage was budget spent on nothing.
 * **A keyword index is nearly free.** No model, no network, no embedding cost.
+  It also lives only in memory. With a durable vector store, rebuild it from the
+  chunks already stored there when the app starts:
+
+  ```dart
+  final keywords = InMemoryKeywordIndex()
+    ..addAll((await store.records()).map(chunkFromRecord).nonNulls);
+  ```
   Measured over five thousand chunks: **3.3 ms per query**, rising to 4.9 ms
   when every query term is common enough to appear in most chunks. Next to an
   embedding call — tens to hundreds of milliseconds of network — that is noise,

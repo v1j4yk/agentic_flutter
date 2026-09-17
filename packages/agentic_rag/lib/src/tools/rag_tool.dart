@@ -34,9 +34,14 @@ import 'package:agentic_vector/agentic_vector.dart';
 /// final tools = ToolRegistry()
 ///   ..register(searchTool(retriever: retriever, corpus: 'the handbook'));
 /// ```
+///
+/// [description] replaces the generated one outright. Reach for [corpus] first:
+/// it keeps the guidance about searching again with different wording, which
+/// measurably improves recall on a first miss.
 Tool searchTool({
   required Retriever retriever,
   String name = 'search_documents',
+  String? description,
   String corpus = 'the indexed documents',
   int topK = 5,
   int maxPassageChars = 800,
@@ -46,9 +51,10 @@ Tool searchTool({
 }) => FunctionTool(
   name: name,
   description:
+      description ??
       'Searches $corpus and returns the most relevant passages with their '
-      'sources. Use it whenever the answer depends on what those documents '
-      'say; search again with different wording if the first results miss.',
+          'sources. Use it whenever the answer depends on what those documents '
+          'say; search again with different wording if the first results miss.',
   parameters: JsonSchema.object(
     properties: <String, JsonSchema>{
       'query': JsonSchema.string(
@@ -120,14 +126,16 @@ Tool searchTool({
 Tool answeringTool({
   required RagPipeline pipeline,
   String name = 'ask_documents',
+  String? description,
   String corpus = 'the indexed documents',
   MetadataFilter? filter,
   String? namespace,
 }) => FunctionTool(
   name: name,
   description:
+      description ??
       'Asks a question of $corpus and returns a written answer with its '
-      'sources. Use it for questions that depend on those documents.',
+          'sources. Use it for questions that depend on those documents.',
   parameters: JsonSchema.object(
     properties: <String, JsonSchema>{
       'question': JsonSchema.string(

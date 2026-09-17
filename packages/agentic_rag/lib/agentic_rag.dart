@@ -62,7 +62,16 @@ export 'src/model/document.dart'
 // --- Ingestion ---------------------------------------------------------------
 export 'src/pipeline/rag_indexer.dart' show IndexingReport, RagIndexer;
 // --- Pipeline ----------------------------------------------------------------
-export 'src/pipeline/rag_pipeline.dart' show RagAnswer, RagContext, RagPipeline;
+export 'src/pipeline/rag_pipeline.dart'
+    show
+        RagAnswer,
+        RagAnswerCompleted,
+        RagAnswerDelta,
+        RagContext,
+        RagPipeline,
+        RagSourcesReady,
+        RagStreamEvent;
+export 'src/pipeline/rag_stack.dart' show RagSearchMode, RagStack;
 // --- Re-ranking --------------------------------------------------------------
 export 'src/rerank/llm_reranker.dart' show LlmReranker;
 export 'src/rerank/reranker.dart'

@@ -2,7 +2,7 @@ name: agentic_rag
 description: >-
   Retrieval-augmented generation for Dart: loading, chunking, dense and BM25
   retrieval, rank fusion, re-ranking, cited answers and retrieval tools.
-version: 0.1.1
+version: 0.1.2
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_rag/README.md
