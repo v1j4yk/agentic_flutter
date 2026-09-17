@@ -1,19 +1,20 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
-- **Fix:** `GeminiChatModel` defaults to `gemini-2.5-flash`. The previous
-  default, `gemini-2.0-flash`, has been retired and returns 404.
-- **Fix:** an API key Google rejects is an `AuthenticationException`. Google
-  reports a bad key as `400 INVALID_ARGUMENT` with reason `API_KEY_INVALID`,
-  which was mapped by status alone to a generic `ProviderException` — so apps
-  never showed their "check your key" message to Gemini users.
-- **Fix:** `GeminiEmbeddingModel` defaults to `gemini-embedding-001`. The
-  previous default, `text-embedding-004`, has been retired by Google and
-  returns 404, so every index built with the default silently failed to
-  embed: `RagIndexer` records a failed document in its report rather than
-  throwing, and apps saw documents indexed into zero passages. The 768
-  default dimensions are unchanged and sent as `outputDimensionality`.
+Fixes for Gemini. No API changes; upgrade with `dart pub upgrade`.
+
+- `GeminiChatModel` defaults to `gemini-2.5-flash`. The previous default,
+  `gemini-2.0-flash`, has been retired by Google and returns 404.
+- `GeminiEmbeddingModel` defaults to `gemini-embedding-001`. The previous
+  default, `text-embedding-004`, has been retired and returns 404. Because
+  `RagIndexer` records a failed document in its report rather than throwing,
+  this showed up as documents indexed into zero passages, not as an error. The
+  default of 768 dimensions is unchanged.
+- An API key Google rejects is now an `AuthenticationException`. Google reports
+  a bad key as `400 INVALID_ARGUMENT` with reason `API_KEY_INVALID`, which was
+  mapped by status alone to a generic `ProviderException`, so apps never showed
+  their "check your key" message to Gemini users.
 
 ## 0.1.1
 
