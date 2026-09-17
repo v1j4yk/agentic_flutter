@@ -2,7 +2,7 @@ name: agentic_vector
 description: >-
   A vector store port with metadata filtering, exact in-process search with
   snapshots, and a Qdrant adapter. Typed Float64List arithmetic throughout.
-version: 0.1.1
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_vector/README.md
@@ -19,8 +19,8 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.1.0
-  agentic_llm: ^0.1.0
+  agentic_core: ^0.2.0
+  agentic_llm: ^0.2.0
   crypto: ^3.0.6
   http: ^1.6.0
   # Floored at what we actually use (`@immutable`, `@protected`,

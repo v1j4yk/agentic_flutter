@@ -6,7 +6,7 @@ behaviour with evals.
 
 ```yaml
 dev_dependencies:
-  agentic_test: ^0.1.2
+  agentic_test: ^0.2.0
 ```
 
 An agent test usually has two bad options. Call a real provider, and the test

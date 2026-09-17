@@ -17,7 +17,7 @@ app, a server and a CLI share one domain model.
 
 ```yaml
 dependencies:
-  agentic_core: ^0.1.0
+  agentic_core: ^0.2.0
 ```
 
 ## What is in here

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - `ToolCallingAgent(untrustedContentPolicy:)`, passed to its executor.
 

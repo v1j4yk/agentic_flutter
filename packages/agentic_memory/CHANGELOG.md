@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - `recallTool` returns untrusted content. Memories are extracted from earlier
   conversations, which may have contained injected text — recall is how an

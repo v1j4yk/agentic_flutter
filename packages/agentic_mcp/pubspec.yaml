@@ -2,7 +2,7 @@ name: agentic_mcp
 description: >-
   A Model Context Protocol client and server for Dart. Remote MCP tools
   become ordinary agent tools, over stdio, HTTP or in-process transports.
-version: 0.1.1
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_mcp/README.md
@@ -19,9 +19,9 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.1.0
-  agentic_llm: ^0.1.0
-  agentic_tools: ^0.1.0
+  agentic_core: ^0.2.0
+  agentic_llm: ^0.2.0
+  agentic_tools: ^0.2.0
   http: ^1.6.0
   # Floored at what we actually use (`@immutable`, `@protected`,
   # `@visibleForTesting`) rather than at the newest release. The Flutter SDK
@@ -32,6 +32,6 @@ dependencies:
 dev_dependencies:
   # Used by the example, which shows an agent running MCP tools. Kept out of
   # `dependencies` because this package works perfectly well without agents.
-  agentic_agents: ^0.1.0
+  agentic_agents: ^0.2.0
   lints: ^6.1.0
   test: ^1.31.2

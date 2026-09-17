@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - MCP tools return untrusted content: whatever a remote server returns was
   written outside the application.

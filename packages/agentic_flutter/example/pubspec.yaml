@@ -12,7 +12,7 @@ dependencies:
     path: ../
   # Only for `FakeChatModel`, so the example runs with no API key. A real app
   # imports `package:agentic_flutter/agentic_flutter.dart` and nothing else.
-  agentic_llm: ^0.1.0
+  agentic_llm: ^0.2.0
   flutter:
     sdk: flutter
 

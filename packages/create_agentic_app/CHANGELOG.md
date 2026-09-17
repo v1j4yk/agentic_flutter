@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - The template passes `approvalHandler:` to `ToolCallingAgent` directly, and its
   README explains `isReadOnly` after untrusted content and points to

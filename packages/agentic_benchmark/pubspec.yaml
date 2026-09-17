@@ -13,15 +13,15 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_agents: ^0.1.0
-  agentic_core: ^0.1.0
-  agentic_llm: ^0.1.0
-  agentic_mcp: ^0.1.0
-  agentic_memory: ^0.1.0
-  agentic_rag: ^0.1.0
-  agentic_tools: ^0.1.0
-  agentic_vector: ^0.1.0
-  agentic_workflow: ^0.1.0
+  agentic_agents: ^0.2.0
+  agentic_core: ^0.2.0
+  agentic_llm: ^0.2.0
+  agentic_mcp: ^0.2.0
+  agentic_memory: ^0.2.0
+  agentic_rag: ^0.2.0
+  agentic_tools: ^0.2.0
+  agentic_vector: ^0.2.0
+  agentic_workflow: ^0.2.0
   meta: ^1.16.0
   # Resolves barrels for signature snapshots. Already in the workspace
   # through the tool generator, so this adds nothing to the resolution.

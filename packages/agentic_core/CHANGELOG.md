@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - `JsonSchema.coerce` treats `null` for an optional, non-nullable property as
   not given, applying the default if there is one. Models send `null` for

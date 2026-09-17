@@ -152,14 +152,14 @@ melos:
         Check that every package is releasable at a version, in dependency
         order. Publishes nothing. Run this well before a release, not on
         release day.
-      run: dart run tool/release.dart --version=0.1.0
+      run: dart run tool/release.dart --version=0.2.0
 
     release:
       description: >-
         Publish every package to pub.dev in dependency order. Irreversible:
         pub.dev retracts for seven days and never removes. Needs `dart pub
         login` and uploader rights on all eleven packages.
-      run: dart run tool/release.dart --version=0.1.0 --publish
+      run: dart run tool/release.dart --version=0.2.0 --publish
 
     fix:check:
       description: >-

@@ -2,7 +2,7 @@ name: create_agentic_app
 description: >-
   Generates a working Flutter AI agent app: a chat screen, tools, human
   approval, a live trace panel, and an API key kept out of the source.
-version: 0.1.1
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/create_agentic_app/README.md

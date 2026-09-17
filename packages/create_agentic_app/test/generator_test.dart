@@ -100,7 +100,7 @@ void main() {
       final files = buildProject(
         name: 'my_app',
         provider: TemplateProvider.openai,
-        dependency: '  agentic_flutter: ^0.1.0',
+        dependency: '  agentic_flutter: ^0.2.0',
       );
       expect(files.keys, contains('test/widget_test.dart'));
       expect(files.keys, isNot(contains('test/app_test.dart')));
@@ -134,7 +134,7 @@ void main() {
       final files = buildProject(
         name: 'my_app',
         provider: TemplateProvider.gemini,
-        dependency: '  agentic_flutter: ^0.1.0',
+        dependency: '  agentic_flutter: ^0.2.0',
       );
 
       for (final entry in files.entries) {
@@ -151,7 +151,7 @@ void main() {
         final files = buildProject(
           name: 'my_app',
           provider: provider,
-          dependency: '  agentic_flutter: ^0.1.0',
+          dependency: '  agentic_flutter: ^0.2.0',
         );
         final agent = files['lib/agent.dart']!;
 
@@ -167,9 +167,9 @@ void main() {
       final published = buildProject(
         name: 'my_app',
         provider: TemplateProvider.openai,
-        dependency: '  agentic_flutter: ^0.1.0',
+        dependency: '  agentic_flutter: ^0.2.0',
       )['pubspec.yaml']!;
-      expect(published, contains('agentic_flutter: ^0.1.0'));
+      expect(published, contains('agentic_flutter: ^0.2.0'));
 
       generate(
         name: 'my_app',
@@ -314,7 +314,7 @@ void main() {
       files = buildProject(
         name: 'my_app',
         provider: TemplateProvider.openai,
-        dependency: '  agentic_flutter: ^0.1.0',
+        dependency: '  agentic_flutter: ^0.2.0',
       );
     });
 

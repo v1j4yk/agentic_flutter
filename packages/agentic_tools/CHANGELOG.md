@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - A call denied because no approval handler is configured now tells the model
   that no one could be asked, instead of that the user declined. The model

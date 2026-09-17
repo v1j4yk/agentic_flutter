@@ -11,7 +11,7 @@ summarise and recall, and tools that let an agent manage its own memory.
 
 ```yaml
 dependencies:
-  agentic_memory: ^0.1.0
+  agentic_memory: ^0.2.0
 ```
 
 ## Why memory is not just a longer transcript

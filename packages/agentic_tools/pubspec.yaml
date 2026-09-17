@@ -3,7 +3,7 @@ description: >-
   Tools an AI agent can call: a typed contract, a registry, argument
   validation and repair, human approval for anything destructive, and
   execution events.
-version: 0.1.1
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_tools/README.md
@@ -20,7 +20,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.1.0
+  agentic_core: ^0.2.0
   # Floored at what we actually use (`@immutable`, `@protected`,
   # `@visibleForTesting`) rather than at the newest release. The Flutter SDK
   # pins `meta` to the version it ships, so a tighter floor here would make the

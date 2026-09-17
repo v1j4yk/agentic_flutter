@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Released with the rest of the framework at 0.2.0, which it now
+  depends on. No changes to this package's API or behaviour.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

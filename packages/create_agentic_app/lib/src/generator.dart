@@ -98,11 +98,6 @@ GenerationResult generate({
   return GenerationResult(directory: directory, files: files.keys.toList());
 }
 
-/// The pubspec fragment that pulls in the framework.
-///
-/// A path dependency when [frameworkPath] is given, which is how the framework's
-/// own CI generates a project and proves the template still compiles against
-/// the code in the working tree rather than against whatever is on pub.dev.
 /// Points the framework's sibling packages at the same working tree.
 ///
 /// A path dependency on `agentic_flutter` alone is not enough: pub applies
@@ -145,8 +140,13 @@ String? _siblingOverridesFor(String frameworkPath) {
   return buffer.toString();
 }
 
+/// The pubspec fragment that pulls in the framework.
+///
+/// A path dependency when [frameworkPath] is given, which is how the framework's
+/// own CI generates a project and proves the template still compiles against
+/// the code in the working tree rather than against whatever is on pub.dev.
 String _dependencyFor(String? frameworkPath) {
-  if (frameworkPath == null) return '  agentic_flutter: ^0.1.0';
+  if (frameworkPath == null) return '  agentic_flutter: ^0.2.0';
   final normalised = frameworkPath.replaceAll(r'\', '/');
   return '  agentic_flutter:\n    path: $normalised';
 }

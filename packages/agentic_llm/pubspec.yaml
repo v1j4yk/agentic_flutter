@@ -3,7 +3,7 @@ description: >-
   Provider-independent chat and embedding models with streaming, tool
   calling and structured output. Adapters for OpenAI-compatible APIs,
   Anthropic and Gemini.
-version: 0.1.2
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_llm/README.md
@@ -20,12 +20,12 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.1.0
+  agentic_core: ^0.2.0
   # The tool vocabulary is not optional for a modern model abstraction: a
   # `ChatRequest` has to be able to carry the tools the model may call. This
   # dependency points strictly downward — `agentic_tools` knows nothing about
   # models — so the layering stays acyclic.
-  agentic_tools: ^0.1.0
+  agentic_tools: ^0.2.0
   http: ^1.6.0
   # Floored at what we actually use (`@immutable`, `@protected`,
   # `@visibleForTesting`) rather than at the newest release. The Flutter SDK

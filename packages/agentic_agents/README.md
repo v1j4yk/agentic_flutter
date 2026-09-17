@@ -11,7 +11,7 @@ decomposition, and multi-agent delegation.
 
 ```yaml
 dependencies:
-  agentic_agents: ^0.1.0
+  agentic_agents: ^0.2.0
 ```
 
 ## The basics

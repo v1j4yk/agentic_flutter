@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - The tool approval sheet warns when a request follows untrusted content,
   naming the tools it came from.

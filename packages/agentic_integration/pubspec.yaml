@@ -14,10 +14,10 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_agents: ^0.1.0
-  agentic_core: ^0.1.0
-  agentic_llm: ^0.1.0
-  agentic_tools: ^0.1.0
+  agentic_agents: ^0.2.0
+  agentic_core: ^0.2.0
+  agentic_llm: ^0.2.0
+  agentic_tools: ^0.2.0
   meta: ^1.16.0
 
 dev_dependencies:

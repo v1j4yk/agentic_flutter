@@ -11,7 +11,7 @@ Dart throughout.
 
 ```yaml
 dependencies:
-  agentic_flutter: ^0.1.1
+  agentic_flutter: ^0.2.0
 ```
 
 | Chat with tools | Tool calls, named | Approval before it runs | Live trace |

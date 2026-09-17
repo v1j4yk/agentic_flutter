@@ -16,7 +16,7 @@ system without a UI framework.
 
 ```yaml
 dependencies:
-  agentic_tools: ^0.1.0
+  agentic_tools: ^0.2.0
 ```
 
 ## Declaring a tool

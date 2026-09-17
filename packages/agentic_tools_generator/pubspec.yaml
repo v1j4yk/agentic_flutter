@@ -2,7 +2,7 @@ name: agentic_tools_generator
 description: >-
   Generates agentic_tools tools from annotated Dart functions: the JSON
   schema, argument reading and result conversion, checked at build time.
-version: 0.1.2
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_tools_generator/README.md
@@ -24,8 +24,8 @@ dependencies:
   source_gen: ^4.3.0
 
 dev_dependencies:
-  agentic_core: ^0.1.0
-  agentic_tools: ^0.1.0
+  agentic_core: ^0.2.0
+  agentic_tools: ^0.2.0
   build_runner: ^2.16.1
   build_test: ^3.5.20
   lints: ^6.1.0

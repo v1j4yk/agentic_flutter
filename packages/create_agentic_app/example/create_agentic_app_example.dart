@@ -56,7 +56,7 @@ void _filesWithoutWritingThem() {
   final files = buildProject(
     name: 'field_notes',
     provider: TemplateProvider.gemini,
-    dependency: '  agentic_flutter: ^0.1.0',
+    dependency: '  agentic_flutter: ^0.2.0',
   );
 
   for (final path in files.keys.toList()..sort()) {
@@ -75,7 +75,7 @@ void _providersDifferWhereItMatters() {
     final agent = buildProject(
       name: 'field_notes',
       provider: provider,
-      dependency: '  agentic_flutter: ^0.1.0',
+      dependency: '  agentic_flutter: ^0.2.0',
     )['lib/agent.dart']!;
 
     final model = RegExp(r'model: (.+),').firstMatch(agent)?.group(1);

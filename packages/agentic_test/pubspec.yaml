@@ -2,7 +2,7 @@ name: agentic_test
 description: >-
   Test agents without paying for every run: record real model answers once and
   replay them offline, and score agent behaviour with repeatable evals.
-version: 0.1.2
+version: 0.2.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_test/README.md
@@ -30,13 +30,13 @@ platforms:
 dependencies:
   # Only APIs that shipped in 0.1.x, so this package can be released against
   # the framework already on pub.dev.
-  agentic_agents: ^0.1.2
-  agentic_core: ^0.1.0
-  agentic_llm: ^0.1.2
+  agentic_agents: ^0.2.0
+  agentic_core: ^0.2.0
+  agentic_llm: ^0.2.0
   # Floored at what the Flutter SDK pins, like every sibling package.
   meta: ^1.16.0
 
 dev_dependencies:
-  agentic_tools: ^0.1.0
+  agentic_tools: ^0.2.0
   lints: ^6.1.0
   test: ^1.31.2

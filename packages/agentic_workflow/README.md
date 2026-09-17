@@ -11,7 +11,7 @@ human and resume days later on another device.
 
 ```yaml
 dependencies:
-  agentic_workflow: ^0.1.0
+  agentic_workflow: ^0.2.0
 ```
 
 ## When a graph, and when an agent

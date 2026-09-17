@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.0
+
+- Released with the rest of the framework at 0.2.0, which it now
+  depends on. No changes to this package's API or behaviour.
+
 ## 0.1.2
 
 Initial release. The version follows the sibling packages it ships with.

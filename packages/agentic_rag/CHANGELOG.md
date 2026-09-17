@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.2.0
 
 - `searchTool` and `answeringTool` return untrusted content: their passages come
   from documents, and a document can contain instructions.
