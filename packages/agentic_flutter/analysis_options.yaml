@@ -2,6 +2,9 @@
 # rules on top. The include order matters: `flutter_lints` comes second so its
 # widget-specific rules are additive rather than a replacement for the strict
 # analyzer settings every other package is held to.
+analyzer:
+  exclude:
+    - build/**
 include: ../../analysis_options.yaml
 
 linter:
