@@ -337,12 +337,35 @@ jobs:
           done
 
   # ---------------------------------------------------------------------------
-  # pana scores the package the way pub.dev will. We fail below 140/160 so that
-  # documentation and platform-support regressions surface in review.
+  # pana scores each package the way pub.dev will, one job per package so a
+  # drop names the package that dropped. The bar is 150/160, not 160: the
+  # "up-to-date dependencies" points move whenever someone else publishes, and
+  # a gate that turns red for that would be ignored within a week. Anything
+  # else — documentation, platform support, analysis — costs more than 10.
+  #
+  # agentic_flutter needs the Flutter SDK to be scored and is covered by
+  # pub.dev's own analysis on release.
   # ---------------------------------------------------------------------------
   pana:
-    name: pub.dev score
+    name: pub.dev score (${{ matrix.package }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package:
+          - agentic_core
+          - agentic_tools
+          - agentic_llm
+          - agentic_agents
+          - agentic_memory
+          - agentic_workflow
+          - agentic_vector
+          - agentic_rag
+          - agentic_mcp
+          - agentic_sqlite
+          - agentic_test
+          - agentic_tools_generator
+          - create_agentic_app
     steps:
       - uses: actions/checkout@v4
       - uses: dart-lang/setup-dart@v1
@@ -350,5 +373,9 @@ jobs:
           sdk: stable
       - run: dart pub get
       - run: dart pub global activate pana
-      - name: Score agentic_core
-        run: dart pub global run pana --no-warning --exit-code-threshold 20 packages/agentic_core
+      - name: Score
+        # --project-root: the package is a workspace member and resolves only
+        # together with the root pubspec.
+        run: >-
+          dart pub global run pana --no-warning --exit-code-threshold 10
+          --project-root . packages/${{ matrix.package }}
