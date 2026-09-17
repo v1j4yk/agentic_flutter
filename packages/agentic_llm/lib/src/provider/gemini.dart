@@ -39,13 +39,19 @@ import 'package:http/http.dart' as http;
 /// A chat model speaking Google's `generateContent` API.
 ///
 /// ```dart
-/// final gemini = GeminiChatModel(apiKey: key, model: 'gemini-2.0-flash');
+/// final gemini = GeminiChatModel(apiKey: key, model: 'gemini-2.5-flash');
 /// ```
 final class GeminiChatModel implements ChatModel {
   /// Creates an adapter.
+  ///
+  /// The default is `gemini-2.5-flash`. The previous default,
+  /// `gemini-2.0-flash`, was retired by Google and now returns 404. Newer
+  /// models are served, but this is the one exercised end to end with this
+  /// adapter — streaming, tool calls and approval — so it is the one a default
+  /// can vouch for. Pass `model` for anything newer.
   GeminiChatModel({
     required String apiKey,
-    String model = 'gemini-2.0-flash',
+    String model = 'gemini-2.5-flash',
     Uri? baseUrl,
     Set<ModelCapability> capabilities = _defaultCapabilities,
     int? contextWindow,
@@ -498,9 +504,23 @@ final class GeminiChatModel implements ChatModel {
 /// An embedding model speaking Google's `embedContent` API.
 final class GeminiEmbeddingModel implements EmbeddingModel {
   /// Creates an adapter.
+  ///
+  /// The default model is `gemini-embedding-001`. Its predecessor,
+  /// `text-embedding-004`, was this default until Google retired it; requests
+  /// to it now return 404. Because an indexer records a failed document rather
+  /// than throwing, that failure surfaced as documents indexed into zero
+  /// passages, not as an error — so the default is kept current here rather
+  /// than left for each app to discover.
+  ///
+  /// [dimensions] is sent as `outputDimensionality`. `gemini-embedding-001`
+  /// produces 3072 by default and is trained to be truncated, so 768 keeps a
+  /// phone-sized index at a quarter of the memory. Truncated vectors are not
+  /// unit length: that is harmless for cosine similarity, the default metric
+  /// everywhere in the framework, but normalise them before using a dot-product
+  /// index.
   GeminiEmbeddingModel({
     required String apiKey,
-    String model = 'text-embedding-004',
+    String model = 'gemini-embedding-001',
     this.dimensions = 768,
     this.maxBatchSize = 100,
     Uri? baseUrl,

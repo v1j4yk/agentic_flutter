@@ -555,6 +555,48 @@ void main() {
       );
     });
 
+    test('a key Google rejects with a 400 is still an authentication '
+        'failure', () async {
+      // The exact body Google returned for an invalid key. The status is 400,
+      // not 401: mapping by status alone produced a generic ProviderException,
+      // and the chat UI never showed "The API key was rejected".
+      await expectMapped(
+        400,
+        <String, Object?>{
+          'error': <String, Object?>{
+            'code': 400,
+            'message': 'API key not valid. Please pass a valid API key.',
+            'status': 'INVALID_ARGUMENT',
+            'details': <Object?>[
+              <String, Object?>{
+                '@type': 'type.googleapis.com/google.rpc.ErrorInfo',
+                'reason': 'API_KEY_INVALID',
+                'domain': 'googleapis.com',
+              },
+            ],
+          },
+        },
+        throwsA(
+          isA<AuthenticationException>()
+              .having((e) => e.isRetryable, 'isRetryable', isFalse)
+              .having(
+                (e) => e.message,
+                'message',
+                contains('API key not valid'),
+              ),
+        ),
+      );
+    });
+
+    test('an ordinary 400 is not mistaken for a bad key', () async {
+      await expectMapped(400, <String, Object?>{
+        'error': <String, Object?>{
+          'message': 'Invalid value at contents[0]',
+          'status': 'INVALID_ARGUMENT',
+        },
+      }, throwsA(isA<ProviderException>()));
+    });
+
     test('429 becomes a retryable rate limit honouring Retry-After', () async {
       await expectMapped(
         429,
@@ -1113,6 +1155,34 @@ void main() {
         ),
       );
       await model.dispose();
+    });
+
+    test('embeddings default to a model Google still serves', () async {
+      // `text-embedding-004` was the default until it was retired and began
+      // returning 404. Inside an indexer that 404 is recorded per document,
+      // not thrown, so it showed up as notes "indexed" into zero passages.
+      // This pins the replacement and the size it is truncated to.
+      final (client, recorder) = respondingWith(<String, Object?>{
+        'embeddings': <Object?>[
+          <String, Object?>{'values': List<double>.filled(768, 0.1)},
+        ],
+      });
+      final model = GeminiEmbeddingModel(apiKey: 'k', client: client);
+
+      final embeddings = await model.embed(<String>[
+        'hello',
+      ], purpose: EmbeddingPurpose.document);
+
+      expect(model.info.id, 'gemini-embedding-001');
+      expect(model.info.id, isNot('text-embedding-004'));
+      expect(
+        recorder.requests.last.url.path,
+        endsWith('/models/gemini-embedding-001:batchEmbedContents'),
+      );
+      final request = recorder.lastBody.requireList('requests').single! as Map;
+      expect(request['model'], 'models/gemini-embedding-001');
+      expect(request['outputDimensionality'], 768);
+      expect(embeddings.single.dimensions, model.dimensions);
     });
   });
 
