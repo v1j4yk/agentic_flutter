@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2
 
 - `RagStack`: indexing, retrieval, a search tool and cited answers assembled
   in one call, in keyword-only or hybrid mode. Keyword-only needs no embedding
