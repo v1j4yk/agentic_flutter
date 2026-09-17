@@ -197,6 +197,7 @@ const Map<String, String> trackedPackages = <String, String>{
   'agentic_rag': 'packages/agentic_rag/lib/agentic_rag.dart',
   'agentic_mcp': 'packages/agentic_mcp/lib/agentic_mcp.dart',
   'agentic_sqlite': 'packages/agentic_sqlite/lib/agentic_sqlite.dart',
+  'agentic_test': 'packages/agentic_test/lib/agentic_test.dart',
   'agentic_flutter': 'packages/agentic_flutter/lib/agentic_flutter.dart',
 };
 

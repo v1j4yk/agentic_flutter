@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-995%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-1034%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -89,6 +89,7 @@ how outages become incidents.
 | **`agentic_rag`** | ✅ Complete | Loading, chunking, indexing, dense and BM25 retrieval, rank fusion, re-ranking, cited answers, retrieval tools |
 | **`agentic_mcp`** | ✅ Complete | Model Context Protocol client and server; remote tools as ordinary tools; stdio, HTTP and in-process transports |
 | **`agentic_sqlite`** | ✅ Complete | On-device persistence: SQLite-backed vector, memory, conversation and workflow-snapshot stores that survive restarts |
+| **`agentic_test`** | ✅ Complete | Testing agents: record real model answers once and replay them offline; evals with tool, answer, budget and model-graded checks, and pass rates |
 | **`agentic_flutter`** | ✅ Complete | The umbrella; app-lifetime runtime, lifecycle-bound cancellation, device capabilities as tools, secret storage, chat, approval and trace widgets |
 
 Applications depend on `agentic_flutter`, which re-exports the rest. Plugin
@@ -450,7 +451,14 @@ expect(clock.requestedDelays, [
 ]);
 ```
 
-Current coverage: **995 tests**, zero analyzer issues under a strict lint set
+Your own agents can be tested the same way. `agentic_test` records a real
+model's answers once, commits them as a cassette, and replays them offline, so
+an agent test runs your real prompts, tools and parsing without a key or a
+bill. A changed prompt fails replay and names what changed. Its evals score
+behaviour you can't check for an exact string: was the right tool called, was
+the wrong one avoided, and how often over repeated runs.
+
+Current coverage: **1034 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring
