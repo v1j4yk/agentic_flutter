@@ -252,6 +252,108 @@ void main() {
     });
   });
 
+  group('approval', () {
+    // A model that asks for one guarded tool call, then answers with whatever
+    // the tool result told it — so the final text reveals whether it ran.
+    FakeChatModel modelCallingGuardedTool() => FakeChatModel(
+      turns: <FakeTurn>[
+        FakeTurn.answer(
+          ChatResponse(
+            message: Message.assistant('', toolCalls: [callTo('delete_all')]),
+            modelId: 'fake-model',
+            finishReason: FinishReason.toolCalls,
+          ),
+        ),
+        FakeTurn.answer(
+          ChatResponse(
+            message: Message.assistant('Done.'),
+            modelId: 'fake-model',
+          ),
+        ),
+      ],
+    );
+
+    ({ToolRegistry registry, List<String> ran}) guardedRegistry() {
+      final ran = <String>[];
+      final registry = ToolRegistry()
+        ..register(
+          FunctionTool.text(
+            name: 'delete_all',
+            description: 'Deletes everything.',
+            isReadOnly: false,
+            requiresApproval: true,
+            handler: (_) {
+              ran.add('delete_all');
+              return 'deleted';
+            },
+          ),
+        );
+      return (registry: registry, ran: ran);
+    }
+
+    test('an approval handler on the agent gates the tool', () async {
+      final (:registry, :ran) = guardedRegistry();
+      final asked = <String>[];
+      final agent = ToolCallingAgent(
+        info: infoFor('assistant'),
+        model: modelCallingGuardedTool(),
+        tools: registry.all,
+        approvalHandler: (request) async {
+          asked.add(request.spec.name);
+          return true;
+        },
+      );
+
+      await agent.run(AgentInput.text('clear it'), context: testContext());
+
+      expect(asked, <String>['delete_all']);
+      expect(ran, <String>['delete_all']);
+    });
+
+    test('a refusal from that handler stops the tool', () async {
+      final (:registry, :ran) = guardedRegistry();
+      final agent = ToolCallingAgent(
+        info: infoFor('assistant'),
+        model: modelCallingGuardedTool(),
+        tools: registry.all,
+        approvalHandler: (_) async => false,
+      );
+
+      await agent.run(AgentInput.text('clear it'), context: testContext());
+
+      expect(ran, isEmpty);
+    });
+
+    test('without a handler a guarded tool is denied, not run', () async {
+      // The failure mode the new parameter exists to make visible: this used
+      // to be the only behaviour anyone got from the agent's constructor.
+      final (:registry, :ran) = guardedRegistry();
+      final agent = ToolCallingAgent(
+        info: infoFor('assistant'),
+        model: modelCallingGuardedTool(),
+        tools: registry.all,
+      );
+
+      await agent.run(AgentInput.text('clear it'), context: testContext());
+
+      expect(ran, isEmpty);
+    });
+
+    test('refuses a handler and a custom executor together', () {
+      final (:registry, ran: _) = guardedRegistry();
+      expect(
+        () => ToolCallingAgent(
+          info: infoFor('assistant'),
+          model: modelCallingGuardedTool(),
+          tools: registry.all,
+          executor: ToolExecutor(tools: registry.all),
+          approvalHandler: (_) async => true,
+        ),
+        throwsA(isA<AssertionError>()),
+      );
+    });
+  });
+
   group('budgets', () {
     test('forbids tool calling on the last permitted iteration', () async {
       // The mechanism that guarantees a user gets an answer instead of an
@@ -624,6 +726,85 @@ void main() {
       expect(restored.history.length, session.history.length);
       expect(restored.runCount, 1);
       expect(restored.totalUsage.totalTokens, 15);
+    });
+  });
+
+  group('InMemorySessionStore', () {
+    AgentSession sessionWith(
+      String id,
+      List<Message> history, {
+      String? title,
+    }) => AgentSession(
+      id: id,
+      history: history,
+      metadata: <String, Object?>{'title': ?title},
+    );
+
+    test('a saved session loads back with its history', () async {
+      final store = InMemorySessionStore();
+      await store.save(
+        sessionWith('s1', <Message>[
+          Message.user('Why are we holding the rollout?'),
+          Message.assistant('Because of the retry bug.'),
+        ], title: 'Rollout'),
+      );
+
+      final loaded = await store.load('s1');
+      expect(loaded!.history.map((m) => m.text), <String>[
+        'Why are we holding the rollout?',
+        'Because of the retry bug.',
+      ]);
+      expect(loaded.metadata['title'], 'Rollout');
+      expect(await store.load('missing'), isNull);
+    });
+
+    test('loading applies the strategy the app chooses now', () async {
+      final store = InMemorySessionStore();
+      await store.save(sessionWith('s1', <Message>[Message.user('hi')]));
+      final loaded = await store.load(
+        's1',
+        strategy: const SlidingWindowHistory(maxMessages: 4),
+      );
+      expect(loaded!.strategy, isA<SlidingWindowHistory>());
+    });
+
+    test('lists the most recently updated first, without messages', () async {
+      final clock = FakeClock();
+      final store = InMemorySessionStore(clock: clock);
+
+      await store.save(sessionWith('old', <Message>[Message.user('a')]));
+      await clock.advance(const Duration(minutes: 1));
+      await store.save(
+        sessionWith('new', <Message>[Message.user('b'), Message.user('c')]),
+      );
+
+      final listed = await store.list();
+      expect(listed.map((s) => s.id), <String>['new', 'old']);
+      expect(listed.first.messageCount, 2);
+
+      // Saving again moves a conversation back to the top.
+      await clock.advance(const Duration(minutes: 1));
+      await store.save(sessionWith('old', <Message>[Message.user('a')]));
+      expect((await store.list()).first.id, 'old');
+    });
+
+    test('delete removes it and says whether it existed', () async {
+      final store = InMemorySessionStore();
+      await store.save(sessionWith('s1', <Message>[Message.user('hi')]));
+      expect(await store.delete('s1'), isTrue);
+      expect(await store.delete('s1'), isFalse);
+      expect(await store.list(), isEmpty);
+    });
+
+    test('the stored copy is independent of the live session', () async {
+      // Stored as JSON: messages added after saving are not in the store until
+      // the session is saved again — as with any durable store.
+      final store = InMemorySessionStore();
+      final live = sessionWith('s1', <Message>[Message.user('first')]);
+      await store.save(live);
+      live.add(Message.user('second'));
+
+      expect((await store.load('s1'))!.history, hasLength(1));
     });
   });
 

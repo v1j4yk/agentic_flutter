@@ -73,7 +73,7 @@ final class WorkflowBudget {
 /// final result = await engine.run(graph, input: {'ticket': ticket});
 ///
 /// if (result.status == WorkflowStatus.suspended) {
-///   await store.save(result.snapshot!.toJson());   // survives the app closing
+///   await snapshots.save(result.snapshot!);   // a WorkflowSnapshotStore
 /// }
 /// ```
 final class WorkflowEngine {

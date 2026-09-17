@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.2
+
+- `WorkflowSnapshot` is no longer `@experimental`. Its JSON carries a
+  `formatVersion`; a snapshot from a newer format is refused with a
+  `SerializationException`, and snapshots from 0.1, which lack the field,
+  still resume.
+- `WorkflowSnapshotStore` and `InMemoryWorkflowSnapshotStore`: where suspended
+  runs wait. `list()` returns the longest-waiting first.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

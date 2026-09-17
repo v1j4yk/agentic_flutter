@@ -1,0 +1,15 @@
+# Examples are read as much as they are compiled. They inherit the package
+# contract but skip the rules that add ceremony without teaching anything:
+# `main` is not public API, and `const` on a literal argument distracts from the
+# line that matters.
+include: ../analysis_options.yaml
+
+analyzer:
+  errors:
+    public_member_api_docs: ignore
+
+linter:
+  rules:
+    public_member_api_docs: false
+    prefer_const_literals_to_create_immutables: false
+    avoid_print: false

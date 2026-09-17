@@ -1064,6 +1064,99 @@ void main() {
       },
     );
 
+    test('a snapshot records its format version', () async {
+      final suspended = await const WorkflowEngine().run(approvalGraph());
+      expect(
+        suspended.snapshot!.toJson()['formatVersion'],
+        WorkflowSnapshot.formatVersion,
+      );
+    });
+
+    test('a 0.1 snapshot, written before versioning, still resumes', () async {
+      // Snapshots already persisted by 0.1 apps have the version 1 shape
+      // without the field. Refusing them would strand every run a user had
+      // waiting when they upgraded.
+      const engine = WorkflowEngine();
+      final graph = approvalGraph();
+      final json = (await engine.run(graph)).snapshot!.toJson()
+        ..remove('formatVersion');
+
+      final finished = await engine.resume(
+        graph,
+        WorkflowSnapshot.fromJson(json),
+        resumeValue: <String, Object?>{'approved': true},
+      );
+      expect(finished.status, WorkflowStatus.completed);
+    });
+
+    test('a snapshot from a newer format is refused, not guessed at', () async {
+      final json =
+          (await const WorkflowEngine().run(approvalGraph())).snapshot!.toJson()
+            ..['formatVersion'] = WorkflowSnapshot.formatVersion + 1;
+
+      expect(
+        () => WorkflowSnapshot.fromJson(json),
+        throwsA(
+          isA<SerializationException>().having(
+            (e) => e.message,
+            'message',
+            contains('Upgrade the package'),
+          ),
+        ),
+      );
+    });
+
+    group('InMemoryWorkflowSnapshotStore', () {
+      test('saves, loads and resumes a suspended run', () async {
+        const engine = WorkflowEngine();
+        final graph = approvalGraph();
+        final store = InMemoryWorkflowSnapshotStore();
+
+        final suspended = await engine.run(graph);
+        await store.save(suspended.snapshot!);
+
+        final loaded = await store.load(suspended.runId);
+        final finished = await engine.resume(
+          graph,
+          loaded!,
+          resumeValue: <String, Object?>{'approved': true},
+        );
+        expect(finished.status, WorkflowStatus.completed);
+        expect(finished.runId, suspended.runId);
+
+        expect(await store.delete(suspended.runId), isTrue);
+        expect(await store.load(suspended.runId), isNull);
+        expect(await store.delete(suspended.runId), isFalse);
+      });
+
+      test('lists the longest-waiting run first, filtered by graph', () async {
+        const engine = WorkflowEngine();
+        final graph = approvalGraph();
+        final store = InMemoryWorkflowSnapshotStore();
+
+        final first = (await engine.run(graph)).snapshot!;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        final second = (await engine.run(graph)).snapshot!;
+        // Saved newest first, to prove the order comes from the snapshots.
+        await store.save(second);
+        await store.save(first);
+
+        final listed = await store.list(graphId: graph.id);
+        expect(listed.map((s) => s.runId), <String>[first.runId, second.runId]);
+        expect(await store.list(graphId: 'some-other-graph'), isEmpty);
+      });
+
+      test('a run that suspends again replaces its own entry', () async {
+        const engine = WorkflowEngine();
+        final store = InMemoryWorkflowSnapshotStore();
+        final snapshot = (await engine.run(approvalGraph())).snapshot!;
+
+        await store.save(snapshot);
+        await store.save(snapshot);
+        expect(await store.list(), hasLength(1));
+      });
+    });
+
     test('takes the rejection branch', () async {
       const engine = WorkflowEngine();
       final graph = approvalGraph();

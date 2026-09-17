@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.1.2
+
+- `SessionStore`, with `SessionSummary` and `InMemorySessionStore`: where
+  conversations are kept between launches. `list()` returns summaries, newest
+  first, so a conversation list is drawn without loading every message.
+  `agentic_sqlite` provides a durable implementation.
+
+- `ToolCallingAgent` accepts `approvalHandler`. Tools marked
+  `requiresApproval` used to be gated only by a handler on `ToolExecutor`, so
+  an agent built the obvious way silently *denied* them, with nothing but a log
+  warning to say why. Passing both `approvalHandler` and a custom `executor` is
+  an assertion error, because the executor already has a handler of its own.
+
 ## 0.1.1
 
 - Shortened the package description to the 60-180 character window pana

@@ -68,6 +68,14 @@ final class ToolCallingAgent implements Agent {
   /// prompt that varies per request defeats provider prompt caching, which is
   /// usually the single largest cost saving available to an agent that runs
   /// many turns over the same instructions.
+  ///
+  /// [approvalHandler] is asked before any tool with `requiresApproval` runs.
+  /// Without one, those tools are *denied* — safe, but easy to miss, because
+  /// the only sign is a warning in the log and a model told it may not proceed.
+  /// It belongs here rather than only on [ToolExecutor] because this is where
+  /// people look for it. Pass it or a custom [executor], not both: an executor
+  /// you built already has its own handler, and silently replacing it would
+  /// switch off whichever gate you meant.
   ToolCallingAgent({
     required this.info,
     required this.model,
@@ -78,10 +86,19 @@ final class ToolCallingAgent implements Agent {
     this.maxOutputTokens,
     this.responseFormat = ResponseFormat.text,
     this.stopWhen,
+    ToolApprovalHandler? approvalHandler,
     ToolExecutor? executor,
     this.ownsModel = false,
-  }) : _executor =
-           executor ?? (tools == null ? null : ToolExecutor(tools: tools));
+  }) : assert(
+         executor == null || approvalHandler == null,
+         'Pass approvalHandler or a custom executor, not both: the executor '
+         'already carries its own approval handler.',
+       ),
+       _executor =
+           executor ??
+           (tools == null
+               ? null
+               : ToolExecutor(tools: tools, approvalHandler: approvalHandler));
 
   @override
   final AgentInfo info;
