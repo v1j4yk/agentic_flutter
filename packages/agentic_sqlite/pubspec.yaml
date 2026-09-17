@@ -28,9 +28,11 @@ platforms:
   windows:
 
 dependencies:
+  agentic_agents: ^0.1.0
   agentic_core: ^0.1.0
   agentic_memory: ^0.1.0
   agentic_vector: ^0.1.0
+  agentic_workflow: ^0.1.0
   # Floored at what the Flutter SDK pins, like every sibling package.
   meta: ^1.16.0
   # 3.x bundles SQLite through a build hook, on the Dart VM and in Flutter

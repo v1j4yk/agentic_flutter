@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-939%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-958%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -88,7 +88,7 @@ how outages become incidents.
 | **`agentic_vector`** | ✅ Complete | Vector store port, metadata filtering, exact in-process search with snapshots, Qdrant adapter, embedding index |
 | **`agentic_rag`** | ✅ Complete | Loading, chunking, indexing, dense and BM25 retrieval, rank fusion, re-ranking, cited answers, retrieval tools |
 | **`agentic_mcp`** | ✅ Complete | Model Context Protocol client and server; remote tools as ordinary tools; stdio, HTTP and in-process transports |
-| **`agentic_sqlite`** | 🧪 Unreleased | On-device persistence: SQLite-backed vector and memory stores that survive restarts |
+| **`agentic_sqlite`** | 🧪 Unreleased | On-device persistence: SQLite-backed vector, memory, conversation and workflow-snapshot stores that survive restarts |
 | **`agentic_flutter`** | ✅ Complete | The umbrella; app-lifetime runtime, lifecycle-bound cancellation, device capabilities as tools, secret storage, chat, approval and trace widgets |
 
 Applications depend on `agentic_flutter`, which re-exports the rest. Plugin
@@ -421,7 +421,7 @@ expect(clock.requestedDelays, [
 ]);
 ```
 
-Current coverage: **939 tests**, zero analyzer issues under a strict lint set
+Current coverage: **958 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring
@@ -499,11 +499,12 @@ disappearing or changing — the class of change that breaks a build. It does no
 catch a parameter becoming required or a return type narrowing. That limit is
 stated rather than glossed over.
 
-Three APIs carry `@experimental` and are exempt from the compatibility promise:
-`PlannerExecutorAgent` (how a plan is represented is still being learned),
-`WorkflowSnapshot` (the *serialised* shape, not the mechanism), and `McpServer`
-(the client half is exercised against real servers nightly; this half has met
-one client, which is our own).
+Two APIs carry `@experimental` and are exempt from the compatibility promise:
+`PlannerExecutorAgent` (how a plan is represented is still being learned) and
+`McpServer` (the client half is exercised against real servers nightly; this
+half has met one client, which is our own). `WorkflowSnapshot` left the list in
+0.2: its JSON now carries a format version, which is what makes a snapshot saved
+by one release safe to resume in the next.
 
 ## Releasing
 

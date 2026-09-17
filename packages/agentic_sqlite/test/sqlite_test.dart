@@ -1,11 +1,13 @@
 import 'dart:io';
 import 'dart:typed_data';
 
+import 'package:agentic_agents/agentic_agents.dart';
 import 'package:agentic_core/agentic_core.dart';
 import 'package:agentic_core/testing.dart';
 import 'package:agentic_memory/agentic_memory.dart';
 import 'package:agentic_sqlite/agentic_sqlite.dart';
 import 'package:agentic_vector/agentic_vector.dart';
+import 'package:agentic_workflow/agentic_workflow.dart';
 import 'package:test/test.dart';
 
 /// Nearly every test here closes the database and opens the file again.
@@ -64,6 +66,32 @@ void main() {
           ),
         ),
       );
+    });
+
+    test('upgrades a schema 1 file in place, keeping its data', () async {
+      // A real upgrade, not a fresh file: build the current schema, strip it
+      // back to exactly what schema 1 had, then reopen.
+      await withDb((db) async {
+        final notes = await db.vectorStore(name: 'notes', dimensions: 2);
+        await notes.upsert(<VectorRecord>[
+          record('kept', <double>[1, 0]),
+        ]);
+        await notes.dispose();
+        db.connection
+          ..execute('DROP TABLE sessions')
+          ..execute('DROP TABLE workflow_snapshots')
+          ..userVersion = 1;
+      });
+
+      await withDb((db) async {
+        expect(db.connection.userVersion, AgenticDatabase.schemaVersion);
+        final notes = await db.vectorStore(name: 'notes', dimensions: 2);
+        expect(await notes.get('kept'), isNotNull);
+        // The tables schema 2 adds are usable.
+        final chats = db.sessionStore();
+        await chats.save(AgentSession(id: 's1'));
+        expect(await chats.list(), hasLength(1));
+      });
     });
 
     test('a disposed database says so rather than crashing', () async {
@@ -342,6 +370,27 @@ void main() {
       });
     });
 
+    test('records come back from disk, for a keyword index', () async {
+      await withDb((db) async {
+        final store = await db.vectorStore(name: 'rec', dimensions: 2);
+        await store.upsert(<VectorRecord>[
+          record('a', <double>[1, 0], text: 'alpha'),
+        ]);
+        await store.upsert(<VectorRecord>[
+          record('b', <double>[0, 1], text: 'beta'),
+        ], namespace: 'other');
+      });
+      await withDb((db) async {
+        final store = await db.vectorStore(name: 'rec', dimensions: 2);
+        expect(
+          (await store.records()).map((r) => r.id),
+          unorderedEquals(<String>['a', 'b']),
+        );
+        final other = await store.records(namespace: 'other');
+        expect(other.single.text, 'beta');
+      });
+    });
+
     test('a disposed store refuses further use', () async {
       await withDb((db) async {
         final store = await db.vectorStore(name: 'gone', dimensions: 2);
@@ -521,6 +570,172 @@ void main() {
         final memory = await db.memoryStore(name: 'quiet');
         expect(await memory.count(), 2);
         expect(changes(), before);
+      });
+    });
+  });
+
+  group('SqliteSessionStore', () {
+    AgentSession chat(String id, List<String> said, {String? title}) =>
+        AgentSession(
+          id: id,
+          history: <Message>[for (final text in said) Message.user(text)],
+          metadata: <String, Object?>{'title': ?title},
+        );
+
+    test('conversations survive a restart, newest first', () async {
+      final clock = FakeClock(initialTime: DateTime.utc(2026, 9, 17, 9));
+      await withDb((db) async {
+        final chats = db.sessionStore(clock: clock);
+        await chats.save(chat('older', <String>['hi'], title: 'Coffee'));
+        await clock.advance(const Duration(minutes: 5));
+        await chats.save(
+          chat('newer', <String>[
+            'why the hold?',
+            'and then?',
+          ], title: 'Rollout'),
+        );
+      });
+
+      await withDb((db) async {
+        final chats = db.sessionStore(clock: clock);
+        final listed = await chats.list();
+        expect(listed.map((s) => s.id), <String>['newer', 'older']);
+        expect(listed.first.messageCount, 2);
+        expect(listed.first.metadata['title'], 'Rollout');
+        expect(listed.first.updatedAt, DateTime.utc(2026, 9, 17, 9, 5));
+
+        final loaded = await chats.load('newer');
+        expect(loaded!.history.map((m) => m.text), <String>[
+          'why the hold?',
+          'and then?',
+        ]);
+      });
+    });
+
+    test('saving again replaces, and delete says whether it existed', () async {
+      await withDb((db) async {
+        final chats = db.sessionStore();
+        await chats.save(chat('s', <String>['one']));
+        await chats.save(chat('s', <String>['one', 'two']));
+        expect(await chats.list(), hasLength(1));
+        expect((await chats.load('s'))!.history, hasLength(2));
+
+        expect(await chats.delete('s'), isTrue);
+        expect(await chats.delete('s'), isFalse);
+        expect(await chats.load('s'), isNull);
+      });
+    });
+
+    test('named stores keep their conversations apart', () async {
+      await withDb((db) async {
+        await db.sessionStore(name: 'work').save(chat('w', <String>['x']));
+        expect(await db.sessionStore(name: 'home').list(), isEmpty);
+        expect(await db.sessionStore(name: 'work').list(), hasLength(1));
+      });
+    });
+  });
+
+  group('SqliteWorkflowSnapshotStore', () {
+    WorkflowGraph approvalGraph() => WorkflowGraph(
+      id: 'send-email',
+      nodes: <WorkflowNode>[
+        TransformNode(
+          id: 'draft',
+          writes: <String, JsonSchema>{'draft': JsonSchema.string()},
+          transform: (_) async => <String, Object?>{'draft': 'Dear Ada, ...'},
+        ),
+        HumanApprovalNode(
+          id: 'approve',
+          message: 'Send this email?',
+          reads: <String>{'draft'},
+          summarise: (context) => context.require<String>('draft'),
+        ),
+        TransformNode(
+          id: 'discard',
+          writes: <String, JsonSchema>{'discarded': JsonSchema.boolean()},
+          transform: (_) async => <String, Object?>{'discarded': true},
+        ),
+        const EndNode(),
+      ],
+      // An approval node branches on its decision, so both outcomes need a
+      // labelled edge — a single unlabelled one leaves the approved run
+      // nowhere to go.
+      edges: const <WorkflowEdge>[
+        WorkflowEdge('draft', 'approve'),
+        WorkflowEdge('approve', 'end', label: 'approved'),
+        WorkflowEdge('approve', 'discard', label: 'rejected'),
+        WorkflowEdge('discard', 'end'),
+      ],
+      startNodeId: 'draft',
+    );
+
+    test('a run suspended before a restart resumes after it', () async {
+      // The whole reason this store exists: approve tomorrow what was asked
+      // today, in a process that did not exist when the question was asked.
+      const engine = WorkflowEngine();
+      final graph = approvalGraph();
+      late String runId;
+
+      await withDb((db) async {
+        final suspended = await engine.run(graph);
+        expect(suspended.status, WorkflowStatus.suspended);
+        runId = suspended.runId;
+        await db.snapshotStore().save(suspended.snapshot!);
+      });
+
+      await withDb((db) async {
+        final snapshots = db.snapshotStore();
+        final pending = await snapshots.list(graphId: graph.id);
+        expect(pending.single.runId, runId);
+
+        final finished = await engine.resume(
+          graph,
+          (await snapshots.load(runId))!,
+          resumeValue: <String, Object?>{'approved': true},
+        );
+        expect(finished.status, WorkflowStatus.completed);
+        expect(finished.runId, runId);
+
+        expect(await snapshots.delete(runId), isTrue);
+        expect(await snapshots.delete(runId), isFalse);
+        expect(await snapshots.list(), isEmpty);
+      });
+    });
+
+    test('lists the longest-waiting run first', () async {
+      const engine = WorkflowEngine();
+      final graph = approvalGraph();
+      await withDb((db) async {
+        final first = (await engine.run(graph)).snapshot!;
+        await Future<void>.delayed(const Duration(milliseconds: 5));
+        final second = (await engine.run(graph)).snapshot!;
+        final snapshots = db.snapshotStore();
+        await snapshots.save(second);
+        await snapshots.save(first);
+
+        expect((await snapshots.list()).map((s) => s.runId), <String>[
+          first.runId,
+          second.runId,
+        ]);
+      });
+    });
+
+    test('a snapshot from a newer format keeps its own explanation', () async {
+      // Not wrapped in a StorageException: the workflow package's message
+      // already says what to do, and burying it would not.
+      await withDb((db) async {
+        final snapshot = (await const WorkflowEngine().run(
+          approvalGraph(),
+        )).snapshot!;
+        await db.snapshotStore().save(snapshot);
+        db.connection.execute(
+          'UPDATE workflow_snapshots SET snapshot = '
+          r"json_set(snapshot, '$.formatVersion', 99)",
+        );
+        await expectLater(
+          db.snapshotStore().load(snapshot.runId),
+          throwsA(isA<SerializationException>()),
+        );
       });
     });
   });

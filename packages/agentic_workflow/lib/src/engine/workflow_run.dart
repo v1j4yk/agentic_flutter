@@ -97,13 +97,16 @@ final class NodeExecution {
 /// That is also why workflow state must be JSON-encodable — the constraint is
 /// not arbitrary, it is what makes suspension real rather than a pause that
 /// dies with the app.
+///
+/// # The serialised shape is versioned
+///
+/// A snapshot saved by one release of an app can be resumed by the next, so
+/// [toJson] writes [formatVersion] and [WorkflowSnapshot.fromJson] checks it. A
+/// snapshot from a *newer* format is refused rather than guessed at: resuming a
+/// run whose state was only half understood is how an approval gets applied to
+/// the wrong document. When the shape changes, the version goes up and reading
+/// the old one stays supported.
 @immutable
-/// **Experimental.** Not the suspension mechanism, which is settled — the
-/// *serialised shape*. A snapshot written by one version and resumed by
-/// another is a compatibility promise this package is not yet ready to make,
-/// and the fields here are still moving. Persist one across an app upgrade at
-/// your own risk until this annotation goes.
-@experimental
 final class WorkflowSnapshot {
   /// Creates a snapshot.
   WorkflowSnapshot({
@@ -119,7 +122,24 @@ final class WorkflowSnapshot {
   }) : visits = Map<String, int>.unmodifiable(visits);
 
   /// Restores a snapshot from JSON.
-  factory WorkflowSnapshot.fromJson(JsonMap json) => WorkflowSnapshot(
+  ///
+  /// Throws a [SerializationException] for a snapshot written by a newer
+  /// format than this build understands.
+  factory WorkflowSnapshot.fromJson(JsonMap json) {
+    final version = json.intOr('formatVersion', 1);
+    if (version > formatVersion) {
+      throw SerializationException(
+        'This workflow snapshot uses format $version, and this build of '
+        'agentic_workflow reads up to $formatVersion. Upgrade the package to '
+        'resume it; resuming a run whose state is only partly understood could '
+        'apply a decision to the wrong data.',
+        path: 'formatVersion',
+      );
+    }
+    return WorkflowSnapshot._fromCurrentJson(json);
+  }
+
+  factory WorkflowSnapshot._fromCurrentJson(JsonMap json) => WorkflowSnapshot(
     graphId: json.requireString('graphId'),
     runId: json.requireString('runId'),
     nodeId: json.requireString('nodeId'),
@@ -133,6 +153,12 @@ final class WorkflowSnapshot {
         entry.key: (entry.value! as num).toInt(),
     },
   );
+
+  /// The version of the serialised shape this build writes.
+  ///
+  /// Snapshots written before the field existed (0.1) have exactly the version
+  /// 1 shape, and are read as version 1.
+  static const int formatVersion = 1;
 
   /// Which graph this run belongs to.
   ///
@@ -167,6 +193,7 @@ final class WorkflowSnapshot {
 
   /// Serialises the snapshot.
   JsonMap toJson() => <String, Object?>{
+    'formatVersion': formatVersion,
     'graphId': graphId,
     'runId': runId,
     'nodeId': nodeId,

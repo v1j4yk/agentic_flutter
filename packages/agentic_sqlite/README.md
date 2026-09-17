@@ -21,11 +21,33 @@ final db = await AgenticDatabase.open('${support.path}/agentic.db');
 
 final notes = await db.vectorStore(name: 'notes', dimensions: 768);
 final memory = await db.memoryStore(name: 'assistant');
+final chats = db.sessionStore();       // conversations
+final pending = db.snapshotStore();    // workflow runs waiting for a person
 ```
 
-Both implement the framework's ports — `VectorStore` and `MemoryStore` — so
-they replace the in-memory stores with no other change. An `EmbeddingIndex`, a
-`RagIndexer`, a `RememberingAgent`: everything built on them now keeps its data.
+| Store | Port | Holds in memory |
+|---|---|---|
+| `vectorStore` | `VectorStore` | Yes — the search index |
+| `memoryStore` | `MemoryStore` | Yes — for ranking |
+| `sessionStore` | `SessionStore` | No — read from disk per call |
+| `snapshotStore` | `WorkflowSnapshotStore` | No — read from disk per call |
+
+Every one implements a framework port, so it replaces the in-memory store with
+no other change. An `EmbeddingIndex`, a `RagIndexer`, a `RememberingAgent`, a
+suspended workflow: everything built on them now keeps its data.
+
+Stores that hold data in memory can be open once per database; the other two
+read from disk on every call and can be opened as often as convenient.
+
+### Rebuilding a keyword index
+
+`InMemoryKeywordIndex` has no durable form, and needs none: the chunks it indexes
+are already stored with their vectors.
+
+```dart
+final keywords = InMemoryKeywordIndex()
+  ..addAll((await notes.records()).map(chunkFromRecord).nonNulls);
+```
 
 Use `getApplicationSupportDirectory()`, not the documents directory, which iOS
 shows to the user and backs up to iCloud.

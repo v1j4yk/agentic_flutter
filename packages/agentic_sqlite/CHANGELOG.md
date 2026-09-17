@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `sessionStore()` and `snapshotStore()`: durable `SessionStore` and
+  `WorkflowSnapshotStore`, added in schema 2. Files from schema 1 upgrade in
+  place.
+- `SqliteVectorStore.records()`, for rebuilding a keyword index at startup.
+
 Initial release of on-device persistence.
 
 - `AgenticDatabase`: one SQLite file holding many named stores, with schema

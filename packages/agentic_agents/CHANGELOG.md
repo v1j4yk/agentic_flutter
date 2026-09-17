@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+- `SessionStore`, with `SessionSummary` and `InMemorySessionStore`: where
+  conversations are kept between launches. `list()` returns summaries, newest
+  first, so a conversation list is drawn without loading every message.
+  `agentic_sqlite` provides a durable implementation.
+
 - `ToolCallingAgent` accepts `approvalHandler`. Tools marked
   `requiresApproval` used to be gated only by a handler on `ToolExecutor`, so
   an agent built the obvious way silently *denied* them, with nothing but a log

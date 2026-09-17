@@ -729,6 +729,85 @@ void main() {
     });
   });
 
+  group('InMemorySessionStore', () {
+    AgentSession sessionWith(
+      String id,
+      List<Message> history, {
+      String? title,
+    }) => AgentSession(
+      id: id,
+      history: history,
+      metadata: <String, Object?>{'title': ?title},
+    );
+
+    test('a saved session loads back with its history', () async {
+      final store = InMemorySessionStore();
+      await store.save(
+        sessionWith('s1', <Message>[
+          Message.user('Why are we holding the rollout?'),
+          Message.assistant('Because of the retry bug.'),
+        ], title: 'Rollout'),
+      );
+
+      final loaded = await store.load('s1');
+      expect(loaded!.history.map((m) => m.text), <String>[
+        'Why are we holding the rollout?',
+        'Because of the retry bug.',
+      ]);
+      expect(loaded.metadata['title'], 'Rollout');
+      expect(await store.load('missing'), isNull);
+    });
+
+    test('loading applies the strategy the app chooses now', () async {
+      final store = InMemorySessionStore();
+      await store.save(sessionWith('s1', <Message>[Message.user('hi')]));
+      final loaded = await store.load(
+        's1',
+        strategy: const SlidingWindowHistory(maxMessages: 4),
+      );
+      expect(loaded!.strategy, isA<SlidingWindowHistory>());
+    });
+
+    test('lists the most recently updated first, without messages', () async {
+      final clock = FakeClock();
+      final store = InMemorySessionStore(clock: clock);
+
+      await store.save(sessionWith('old', <Message>[Message.user('a')]));
+      await clock.advance(const Duration(minutes: 1));
+      await store.save(
+        sessionWith('new', <Message>[Message.user('b'), Message.user('c')]),
+      );
+
+      final listed = await store.list();
+      expect(listed.map((s) => s.id), <String>['new', 'old']);
+      expect(listed.first.messageCount, 2);
+
+      // Saving again moves a conversation back to the top.
+      await clock.advance(const Duration(minutes: 1));
+      await store.save(sessionWith('old', <Message>[Message.user('a')]));
+      expect((await store.list()).first.id, 'old');
+    });
+
+    test('delete removes it and says whether it existed', () async {
+      final store = InMemorySessionStore();
+      await store.save(sessionWith('s1', <Message>[Message.user('hi')]));
+      expect(await store.delete('s1'), isTrue);
+      expect(await store.delete('s1'), isFalse);
+      expect(await store.list(), isEmpty);
+    });
+
+    test('the stored copy is independent of the live session', () async {
+      // Stored as JSON: messages added after saving are not in the store until
+      // the session is saved again — as with any durable store.
+      final store = InMemorySessionStore();
+      final live = sessionWith('s1', <Message>[Message.user('first')]);
+      await store.save(live);
+      live.add(Message.user('second'));
+
+      expect((await store.load('s1'))!.history, hasLength(1));
+    });
+  });
+
   group('observability', () {
     test('publishes run, step and completion events', () async {
       final bus = BroadcastEventBus();

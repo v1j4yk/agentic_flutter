@@ -19,11 +19,15 @@ library;
 
 import 'dart:io';
 
+import 'package:agentic_agents/agentic_agents.dart';
 import 'package:agentic_core/agentic_core.dart';
 import 'package:agentic_memory/agentic_memory.dart';
 import 'package:agentic_sqlite/src/sqlite_memory_store.dart';
+import 'package:agentic_sqlite/src/sqlite_session_store.dart';
+import 'package:agentic_sqlite/src/sqlite_snapshot_store.dart';
 import 'package:agentic_sqlite/src/sqlite_vector_store.dart';
 import 'package:agentic_vector/agentic_vector.dart';
+import 'package:agentic_workflow/agentic_workflow.dart';
 import 'package:meta/meta.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -91,7 +95,7 @@ final class AgenticDatabase {
   /// refused rather than read, because reading a schema you do not understand
   /// is how an upgrade followed by a downgrade silently corrupts somebody's
   /// notes.
-  static const int schemaVersion = 1;
+  static const int schemaVersion = 2;
 
   /// Opens the vector collection [name], creating it if needed.
   ///
@@ -155,6 +159,27 @@ final class AgenticDatabase {
       _release('memory:$name');
       rethrow;
     }
+  }
+
+  /// Opens the conversation store [name].
+  ///
+  /// Unlike the vector and memory stores this holds nothing in memory, so it
+  /// may be opened more than once: every instance reads the same rows.
+  /// [clock] stamps each save, and is what orders the conversation list.
+  SessionStore sessionStore({
+    String name = 'default',
+    Clock clock = const SystemClock(),
+  }) {
+    connection; // Fails now if disposed, rather than on the first save.
+    return SqliteSessionStore(database: this, name: name, clock: clock);
+  }
+
+  /// Opens the store for suspended workflow runs named [name].
+  ///
+  /// Holds nothing in memory, so it may be opened more than once.
+  WorkflowSnapshotStore snapshotStore({String name = 'default'}) {
+    connection;
+    return SqliteWorkflowSnapshotStore(database: this, name: name);
   }
 
   /// Closes the file. Stores opened from it must not be used afterwards.
@@ -270,6 +295,37 @@ final class AgenticDatabase {
               seq INTEGER NOT NULL,
               PRIMARY KEY (store, id)
             ) WITHOUT ROWID''');
+      }
+      if (current < 2) {
+        // Neither table holds an in-memory copy: both are read from disk on
+        // every call, which is why their stores need no open-once claim.
+        db
+          ..execute('''
+            CREATE TABLE sessions (
+              store TEXT NOT NULL,
+              id TEXT NOT NULL,
+              session TEXT NOT NULL,
+              updated_at INTEGER NOT NULL,
+              message_count INTEGER NOT NULL,
+              metadata TEXT NOT NULL,
+              PRIMARY KEY (store, id)
+            ) WITHOUT ROWID''')
+          ..execute(
+            'CREATE INDEX sessions_by_update ON sessions (store, updated_at)',
+          )
+          ..execute('''
+            CREATE TABLE workflow_snapshots (
+              store TEXT NOT NULL,
+              run_id TEXT NOT NULL,
+              graph_id TEXT NOT NULL,
+              suspended_at INTEGER NOT NULL,
+              snapshot TEXT NOT NULL,
+              PRIMARY KEY (store, run_id)
+            ) WITHOUT ROWID''')
+          ..execute(
+            'CREATE INDEX workflow_snapshots_by_wait '
+            'ON workflow_snapshots (store, graph_id, suspended_at)',
+          );
       }
       // Later schema versions append a block here, each guarded by
       // `current < n`, so a file several versions old migrates step by step.

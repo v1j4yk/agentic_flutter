@@ -133,20 +133,29 @@ unbounded, it outlives the process, and the answer arrives from outside.
 final result = await engine.run(graph, input: input);
 
 if (result.status == WorkflowStatus.suspended) {
-  await db.save(jsonEncode(result.snapshot!.toJson()));
+  await snapshots.save(result.snapshot!);     // a WorkflowSnapshotStore
   showApproval(result.suspension!.message, result.suspension!.payload);
 }
 
-// The next morning, possibly on another device:
-final snapshot = WorkflowSnapshot.fromJson(jsonDecode(await db.load()));
+// The next morning, in a process that did not exist when the question was asked:
+final snapshot = await snapshots.load(runId);
 final finished = await engine.resume(
   graph,
-  snapshot,
+  snapshot!,
   resumeValue: {'approved': true, 'comment': 'looks right'},
 );
+if (finished.status != WorkflowStatus.suspended) await snapshots.delete(runId);
 ```
 
+`InMemoryWorkflowSnapshotStore` is for tests; `agentic_sqlite` provides one that
+survives the app closing. `snapshots.list()` returns the runs still waiting,
+longest first — the order a list of pending approvals should be worked through.
+
 The resumed run keeps its original `runId`: one run, paused, not two.
+
+A snapshot's JSON carries a `formatVersion`. One from a newer release is refused
+with an instruction to upgrade, rather than resumed on a guess; snapshots saved
+by 0.1, before the field existed, still resume.
 
 The resume value is validated against the suspension's schema **before** the
 node sees it, so a malformed decision is rejected at the boundary rather than

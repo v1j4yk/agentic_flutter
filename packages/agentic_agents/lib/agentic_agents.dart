@@ -56,6 +56,8 @@ export 'src/agent/agent_session.dart'
         KeepAllHistory,
         SlidingWindowHistory,
         repairDanglingToolResults;
+export 'src/agent/session_store.dart'
+    show InMemorySessionStore, SessionStore, SessionSummary;
 // --- Events ------------------------------------------------------------------
 export 'src/events/agent_events.dart'
     show

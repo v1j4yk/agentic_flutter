@@ -312,6 +312,46 @@ final class SqliteVectorStore implements VectorStore {
     return _index.deleteWhere(filter, namespace: namespace);
   }
 
+  /// Every record in [namespace], or in every namespace when null.
+  ///
+  /// Read from disk. The use it exists for is rebuilding a lexical index after
+  /// a restart — `InMemoryKeywordIndex` lives only in memory, and the chunks
+  /// it needs are already stored here alongside their vectors:
+  ///
+  /// ```dart
+  /// final keywords = InMemoryKeywordIndex()
+  ///   ..addAll((await store.records()).map(chunkFromRecord).nonNulls);
+  /// ```
+  Future<List<VectorRecord>> records({String? namespace}) async {
+    _checkOpen();
+    final ResultSet rows;
+    try {
+      rows = namespace == null
+          ? _database.connection.select(
+              'SELECT id, vector, metadata, text FROM vectors '
+              'WHERE collection = ?',
+              <Object?>[name],
+            )
+          : _database.connection.select(
+              'SELECT id, vector, metadata, text FROM vectors '
+              'WHERE collection = ? AND namespace = ?',
+              <Object?>[name, namespace],
+            );
+    } on SqliteException catch (error, stackTrace) {
+      throw wrapSqliteError(error, stackTrace, operation: 'records');
+    }
+    return List<VectorRecord>.unmodifiable(<VectorRecord>[
+      for (final row in rows)
+        VectorRecord(
+          id: row['id'] as String,
+          vector: _decode(row['vector'] as Uint8List),
+          metadata: (jsonDecode(row['metadata'] as String) as Map)
+              .cast<String, Object?>(),
+          text: row['text'] as String?,
+        ),
+    ]);
+  }
+
   @override
   Future<int> count({String? namespace, MetadataFilter? filter}) {
     _checkOpen();

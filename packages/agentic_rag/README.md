@@ -150,6 +150,13 @@ written, cited answer, at the cost of a nested model call.
 * **Watch `citationsOffered` against `citationsUsed`.** A large gap means
   over-fetching: every uncited passage was budget spent on nothing.
 * **A keyword index is nearly free.** No model, no network, no embedding cost.
+  It also lives only in memory. With a durable vector store, rebuild it from the
+  chunks already stored there when the app starts:
+
+  ```dart
+  final keywords = InMemoryKeywordIndex()
+    ..addAll((await store.records()).map(chunkFromRecord).nonNulls);
+  ```
   Measured over five thousand chunks: **3.3 ms per query**, rising to 4.9 ms
   when every query term is common enough to appear in most chunks. Next to an
   embedding call — tens to hundreds of milliseconds of network — that is noise,

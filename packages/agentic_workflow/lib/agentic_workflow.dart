@@ -25,6 +25,8 @@
 library;
 
 // --- Engine ------------------------------------------------------------------
+export 'src/engine/snapshot_store.dart'
+    show InMemoryWorkflowSnapshotStore, WorkflowSnapshotStore;
 export 'src/engine/workflow_engine.dart' show WorkflowBudget, WorkflowEngine;
 export 'src/engine/workflow_run.dart'
     show NodeExecution, WorkflowResult, WorkflowSnapshot, WorkflowStatus;
