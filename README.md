@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-961%20passing-brightgreen.svg)](#testing-philosophy)
+[![tests](https://img.shields.io/badge/tests-975%20passing-brightgreen.svg)](#testing-philosophy)
 
 ```yaml
 dependencies:
@@ -421,7 +421,7 @@ expect(clock.requestedDelays, [
 ]);
 ```
 
-Current coverage: **961 tests**, zero analyzer issues under a strict lint set
+Current coverage: **975 tests**, zero analyzer issues under a strict lint set
 with `--fatal-infos`.
 
 ## Measuring

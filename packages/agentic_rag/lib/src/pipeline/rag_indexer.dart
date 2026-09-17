@@ -212,6 +212,16 @@ final class RagIndexer {
     final hash = document.contentHash;
 
     if (skipUnchanged && await _isUnchanged(document.id, hash)) {
+      // Unchanged in the vector store is not the same as present in the
+      // keyword index. The vector store may be durable while the keyword
+      // index lives only in memory, so after a restart every document is
+      // skipped here and the index would stay empty — hybrid retrieval
+      // quietly losing its lexical half. Chunking costs no model call, so the
+      // index is refilled on the way past.
+      final keywords = keywordIndex;
+      if (keywords != null && !keywords.containsDocument(document.id)) {
+        keywords.addAll(chunker.chunk(document));
+      }
       return (skipped: true, written: 0, removed: 0);
     }
 

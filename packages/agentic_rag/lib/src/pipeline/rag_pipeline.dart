@@ -10,6 +10,50 @@ import 'package:agentic_rag/src/retrieval/retriever.dart';
 import 'package:agentic_vector/agentic_vector.dart';
 import 'package:meta/meta.dart';
 
+/// What [RagPipeline.stream] reports, in the order it happens.
+///
+/// A sealed family so a screen can `switch` over it and the compiler says when
+/// a case is missing.
+sealed class RagStreamEvent {
+  const RagStreamEvent();
+}
+
+/// Retrieval finished; the passages the answer will draw on are known.
+///
+/// Arrives before the model has written a word. On a phone that is the
+/// difference between a spinner for the whole answer and sources on screen
+/// within a few hundred milliseconds — and the sources are what tell somebody
+/// whether the answer that follows is worth reading.
+final class RagSourcesReady extends RagStreamEvent {
+  /// Creates the event.
+  const RagSourcesReady(this.context);
+
+  /// The passages, numbered as the answer will cite them.
+  final RagContext context;
+}
+
+/// More of the answer's text.
+final class RagAnswerDelta extends RagStreamEvent {
+  /// Creates the event.
+  const RagAnswerDelta(this.text);
+
+  /// The text added since the previous delta.
+  final String text;
+}
+
+/// The answer is complete, with the citations it actually used.
+///
+/// Always the last event of a stream that did not fail. Citations are
+/// resolved here, from the finished text, because a `[1]` can arrive split
+/// across two deltas.
+final class RagAnswerCompleted extends RagStreamEvent {
+  /// Creates the event.
+  const RagAnswerCompleted(this.answer);
+
+  /// The finished answer, identical to what [RagPipeline.answer] returns.
+  final RagAnswer answer;
+}
+
 /// The passages selected for a question, ready to put in a prompt.
 @immutable
 final class RagContext {
@@ -344,15 +388,92 @@ final class RagPipeline {
       promptFor(query, retrieved, history: history),
       context: context,
     );
-    final duration = clock.now().difference(started);
+    return _complete(
+      response,
+      retrieved,
+      model: chat,
+      duration: clock.now().difference(started),
+      context: context,
+    );
+  }
 
+  /// Answers [query] as a stream: sources first, then text, then the answer.
+  ///
+  /// Emits exactly one [RagSourcesReady], any number of [RagAnswerDelta]s, and
+  /// one [RagAnswerCompleted] whose answer is the same as [answer] would have
+  /// returned — including the `AnswerGenerated` event and the cost estimate.
+  ///
+  /// Cancelling the subscription cancels the model's stream, which closes the
+  /// connection and stops the provider generating an answer nobody will read.
+  ///
+  /// ```dart
+  /// await for (final event in pipeline.stream(question)) {
+  ///   switch (event) {
+  ///     case RagSourcesReady(:final context): showSources(context.citations);
+  ///     case RagAnswerDelta(:final text):     appendText(text);
+  ///     case RagAnswerCompleted(:final answer): linkCitations(answer.citations);
+  ///   }
+  /// }
+  /// ```
+  Stream<RagStreamEvent> stream(
+    String query, {
+    MetadataFilter? filter,
+    String? namespace,
+    List<Message> history = const <Message>[],
+    AgenticContext? context,
+  }) async* {
+    final chat = _requireModel();
+    final clock = context?.clock ?? const SystemClock();
+
+    final retrieved = await buildContext(
+      query,
+      filter: filter,
+      namespace: namespace,
+      context: context,
+    );
+    yield RagSourcesReady(retrieved);
+
+    final started = clock.now();
+    final builder = ChatResponseBuilder(modelId: chat.info.id);
+    await for (final chunk in chat.stream(
+      promptFor(query, retrieved, history: history),
+      context: context,
+    )) {
+      builder.add(chunk);
+      final delta = chunk.textDelta;
+      if (delta != null && delta.isNotEmpty) yield RagAnswerDelta(delta);
+    }
+
+    yield RagAnswerCompleted(
+      _complete(
+        builder.build(),
+        retrieved,
+        model: chat,
+        duration: clock.now().difference(started),
+        context: context,
+      ),
+    );
+  }
+
+  /// Resolves citations, reports the answer, and prices it.
+  ///
+  /// Shared by [answer] and [stream] so the two cannot drift: a streamed answer
+  /// that cited, costed or reported differently from a generated one would be
+  /// a bug nobody noticed until the numbers disagreed.
+  RagAnswer _complete(
+    ChatResponse response,
+    RagContext retrieved, {
+    required ChatModel model,
+    required Duration duration,
+    AgenticContext? context,
+  }) {
     final text = response.text;
     final citations = citationsIn(text, retrieved);
 
     context?.publish(
       AnswerGenerated(
         id: context.ids.prefixed('evt'),
-        timestamp: clock.now(),
+        timestamp: context.clock.now(),
         citationsOffered: retrieved.citations.length,
         citationsUsed: citations.length,
         answeredFromContext: citations.isNotEmpty,
@@ -367,17 +488,21 @@ final class RagPipeline {
       context: retrieved,
       citations: citations,
       usage: response.usage,
-      cost: response.cost ?? chat.info.estimateCost(response.usage),
+      cost: response.cost ?? model.info.estimateCost(response.usage),
     );
   }
 
-  /// Builds the request that [answer] would send.
+  /// Builds the request that [answer] and [stream] send.
   ///
-  /// Exposed so that a caller who wants to stream can do the generation
-  /// themselves — `model.stream(pipeline.promptFor(query, context))` — and
-  /// resolve citations from the finished text with [citationsIn]. That is
-  /// cheaper than a streaming API here would be, and it keeps the pipeline out
-  /// of the business of buffering someone else's stream.
+  /// Exposed for a caller who needs control of generation that neither offers
+  /// — a different model per request, say.
+  ///
+  /// This used to be the recommended way to stream, on the argument that a
+  /// streaming API here would mean buffering someone else's stream. It turned
+  /// out every caller buffered it anyway: citations can only be resolved from
+  /// finished text, because a `[1]` arrives split across deltas. So each app
+  /// rewrote the same five steps and lost the `AnswerGenerated` event and the
+  /// cost estimate along the way. [stream] does those steps once.
   ChatRequest promptFor(
     String query,
     RagContext context, {

@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+- `RagStack`: indexing, retrieval, a search tool and cited answers assembled
+  in one call, in keyword-only or hybrid mode. Keyword-only needs no embedding
+  model and involves no placeholder vectors.
+- `RagPipeline.stream` and `RagStack.stream`: sources first (`RagSourcesReady`),
+  then text (`RagAnswerDelta`), then the cited answer (`RagAnswerCompleted`),
+  with the same citations, event and cost as `answer`.
+- `InMemoryKeywordIndex.containsDocument`. Removing a document now touches its
+  own chunks instead of scanning every chunk in the index.
+- **Fix:** after a restart with a durable vector store, hybrid retrieval lost
+  its keyword half. Unchanged documents are skipped without re-embedding, and
+  the skip returned before the in-memory keyword index was refilled. Skipped
+  documents now repopulate a keyword index that lacks them.
+
 - `searchTool` and `answeringTool` accept a `description` override, as the
   platform tools in `agentic_flutter` already do. Prefer `corpus` when it is
   enough: the default description carries the advice to search again with
