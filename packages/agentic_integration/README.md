@@ -109,7 +109,7 @@ nightly rather than on every push.
 | `ANTHROPIC_API_KEY` | Enables Anthropic |
 | `ANTHROPIC_MODEL` | Overrides `claude-3-5-haiku-latest` |
 | `GEMINI_API_KEY` | Enables Gemini (chat and embeddings) |
-| `GEMINI_MODEL` | Overrides `gemini-2.0-flash` |
+| `GEMINI_MODEL` | Overrides `gemini-2.5-flash` |
 | `DEEPSEEK_API_KEY` | Enables DeepSeek |
 | `OLLAMA_BASE_URL` + `OLLAMA_MODEL` | Enables a local model |
 | `OLLAMA_CAPABILITIES` | Comma-separated, e.g. `toolCalling,streaming`. A local model's capabilities depend on which weights are loaded, so the adapter cannot know them |

@@ -189,7 +189,7 @@ SubjectSet discoverSubjects() {
       name: 'gemini',
       createChat: () => GeminiChatModel(
         apiKey: apiKey,
-        model: env('GEMINI_MODEL') ?? 'gemini-2.0-flash',
+        model: env('GEMINI_MODEL') ?? 'gemini-2.5-flash',
       ),
       createEmbeddings: () => GeminiEmbeddingModel(apiKey: apiKey),
     ),

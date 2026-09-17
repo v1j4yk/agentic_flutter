@@ -286,8 +286,14 @@ final class LlmHttpTransport implements Disposable {
 
 /// Converts an HTTP failure into the framework's error hierarchy.
 ///
-/// The status code decides the type, with two refinements that matter:
+/// The status code decides the type, with refinements where a status code
+/// alone would be misleading:
 ///
+/// * a rejected API key becomes an [AuthenticationException] whatever its
+///   status. Google answers a bad key with `400 INVALID_ARGUMENT` and the reason
+///   `API_KEY_INVALID`; reading only the status called that a malformed
+///   request, so the one error a new user is most likely to hit arrived without
+///   the "check your key" guidance an app shows for authentication failures;
 /// * a 429 whose body mentions an exhausted quota becomes a
 ///   [QuotaExceededException], **not** a [RateLimitException]. The difference is
 ///   whether waiting helps: retrying a throttle succeeds, retrying a spent
@@ -311,7 +317,7 @@ AgenticException mapHttpFailure({
     'providerType': parsed.type,
   });
 
-  if (statusCode == 401) {
+  if (statusCode == 401 || _looksLikeRejectedKey(body)) {
     return AuthenticationException(
       '$provider rejected the credentials: $message',
       provider: provider,
@@ -361,6 +367,12 @@ AgenticException mapHttpFailure({
     details: details,
   );
 }
+
+/// Whether an error body says the API key itself was rejected.
+///
+/// Matched on the machine-readable reason, not the prose, so a translated or
+/// reworded message still maps.
+bool _looksLikeRejectedKey(String body) => body.contains('API_KEY_INVALID');
 
 /// Whether an error body indicates an exhausted quota rather than a rate limit.
 ///

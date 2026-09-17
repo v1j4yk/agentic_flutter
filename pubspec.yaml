@@ -115,6 +115,10 @@ melos:
       run: >-
         cd packages/agentic_integration &&
         dart test --tags integration --reporter=expanded
+      # Through melos's `env` rather than a `VAR=1 command` prefix, which is
+      # POSIX-only and fails under the cmd.exe melos uses on Windows.
+      env:
+        AGENTIC_INTEGRATION: '1'
 
     audit:
       description: Print the provider capability matrix.

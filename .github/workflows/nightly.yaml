@@ -45,6 +45,12 @@ jobs:
         # harness treats as absent and skips with a reason — so a fork without
         # keys reports "nothing was proved" rather than a wall of failures.
         env:
+          # The suite skips itself unless this is set, so a developer running
+          # `dart test` never spends money by accident. This job exists to
+          # spend it. Without the line the whole suite skipped every night and
+          # reported success, which is how three Gemini defaults that Google
+          # had retired shipped in 0.1.1 unnoticed.
+          AGENTIC_INTEGRATION: '1'
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
