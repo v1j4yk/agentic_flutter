@@ -163,6 +163,9 @@ class _ChatScreenState extends State<ChatScreen> {
     ),
     body: AgentChatView(
       controller: _chat,
+      // Models answer in Markdown, so render it. Plain text is the default,
+      // because a design system usually has its own opinion about typography.
+      renderer: const MarkdownMessageRenderer(),
       hintText: 'Ask about the weather, or set a reminder',
       emptyState: const Padding(
         padding: EdgeInsets.all(32),

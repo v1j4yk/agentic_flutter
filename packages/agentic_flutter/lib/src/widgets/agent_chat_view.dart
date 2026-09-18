@@ -6,6 +6,7 @@ import 'dart:math' show pi, sin;
 
 import 'package:agentic_core/agentic_core.dart';
 import 'package:agentic_flutter/src/widgets/agent_chat_controller.dart';
+import 'package:agentic_flutter/src/widgets/message_renderer.dart';
 import 'package:flutter/material.dart';
 
 /// A complete chat surface over an [AgentChatController].
@@ -46,6 +47,8 @@ class AgentChatView extends StatefulWidget {
     this.hintText = 'Send a message',
     this.padding = const EdgeInsets.all(16),
     this.entryBuilder,
+    this.renderer = const PlainTextMessageRenderer(),
+    this.onLinkTap,
     super.key,
   });
 
@@ -57,6 +60,20 @@ class AgentChatView extends StatefulWidget {
 
   /// Placeholder text in the composer.
   final String hintText;
+
+  /// How a message's text becomes widgets.
+  ///
+  /// Plain text by default, which is what the model sent. Pass
+  /// [MarkdownMessageRenderer] to render the Markdown models actually write —
+  /// headings, lists, links and code blocks — or your own implementation over
+  /// whichever package your design uses.
+  final MessageRenderer renderer;
+
+  /// Called when a link inside a message is tapped.
+  ///
+  /// Absent by default, and links are then rendered but inert: opening a URL
+  /// needs a plugin, and the framework does not choose one for you.
+  final void Function(Uri uri)? onLinkTap;
 
   /// Padding around the transcript.
   final EdgeInsets padding;
@@ -139,6 +156,8 @@ class _AgentChatViewState extends State<AgentChatView> {
                           ChatEntryTile(
                             key: ValueKey<String>(entry.id),
                             entry: entry,
+                            renderer: widget.renderer,
+                            onLinkTap: widget.onLinkTap,
                           );
                     },
                   ),
@@ -159,10 +178,21 @@ class _AgentChatViewState extends State<AgentChatView> {
 /// One entry in the transcript.
 class ChatEntryTile extends StatelessWidget {
   /// Creates a tile.
-  const ChatEntryTile({required this.entry, super.key});
+  const ChatEntryTile({
+    required this.entry,
+    this.renderer = const PlainTextMessageRenderer(),
+    this.onLinkTap,
+    super.key,
+  });
 
   /// What to render.
   final ChatEntry entry;
+
+  /// How the message's text becomes widgets.
+  final MessageRenderer renderer;
+
+  /// Called when a link inside the message is tapped.
+  final void Function(Uri uri)? onLinkTap;
 
   @override
   Widget build(BuildContext context) {
@@ -184,6 +214,10 @@ class ChatEntryTile extends StatelessWidget {
       foreground = theme.colorScheme.onSurface;
     }
 
+    final bodyStyle =
+        theme.textTheme.bodyMedium?.copyWith(color: foreground, height: 1.4) ??
+        TextStyle(color: foreground, height: 1.4);
+
     // A square corner on the side the message came from. It is the one cue
     // that survives being glanced at rather than read, which is how a
     // conversation is actually scanned.
@@ -202,15 +236,24 @@ class ChatEntryTile extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-        child: isPending
-            ? _TypingDots(color: foreground)
-            : SelectableText(
-                error != null ? _describeError(error) : entry.text,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: foreground,
-                  height: 1.4,
-                ),
-              ),
+        child: switch ((isPending, error)) {
+          (true, _) => _TypingDots(color: foreground),
+          // An error is our own sentence, not the model's Markdown; rendering
+          // it through the renderer would be theatre.
+          (_, final AgenticException failure?) => SelectableText(
+            _describeError(failure),
+            style: bodyStyle,
+          ),
+          _ => renderer.build(
+            context,
+            MessageRender(
+              text: entry.text,
+              style: bodyStyle,
+              isStreaming: entry.isStreaming,
+              onLinkTap: onLinkTap,
+            ),
+          ),
+        },
       ),
     );
 

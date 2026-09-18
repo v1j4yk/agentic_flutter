@@ -78,6 +78,29 @@ export 'src/widgets/agent_chat_controller.dart'
 export 'src/widgets/agent_chat_view.dart'
     show AgentChatView, ChatComposer, ChatEntryTile;
 export 'src/widgets/agentic_scope.dart' show AgenticBuildContext, AgenticScope;
+export 'src/widgets/markdown_parse.dart'
+    show
+        BoldNode,
+        CodeBlock,
+        CodeNode,
+        HeadingBlock,
+        InlineSpanNode,
+        ItalicNode,
+        LinkNode,
+        ListBlock,
+        MarkdownBlock,
+        ParagraphBlock,
+        QuoteBlock,
+        RuleBlock,
+        TextNode,
+        parseInline,
+        parseMarkdownBlocks;
+export 'src/widgets/message_renderer.dart'
+    show
+        MarkdownMessageRenderer,
+        MessageRender,
+        MessageRenderer,
+        PlainTextMessageRenderer;
 export 'src/widgets/tool_approval.dart'
     show
         ScriptedApprovals,

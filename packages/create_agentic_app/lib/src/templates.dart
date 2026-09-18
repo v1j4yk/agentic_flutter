@@ -645,6 +645,9 @@ class _ChatScreenState extends State<ChatScreen> {
                 Expanded(
                   child: AgentChatView(
                     controller: chat,
+                    // Models answer in Markdown. Swap in your own
+                    // MessageRenderer if your design needs something else.
+                    renderer: const MarkdownMessageRenderer(),
                     hintText: 'Ask something',
                     emptyState: _EmptyState(
                       onPick: (String prompt) => unawaited(chat.send(prompt)),

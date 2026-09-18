@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The generated app renders answers as Markdown, since that is what models
+  write. It is one line, and the comment beside it says how to change it.
+
 ## 0.2.0
 
 - The template passes `approvalHandler:` to `ToolCallingAgent` directly, and its

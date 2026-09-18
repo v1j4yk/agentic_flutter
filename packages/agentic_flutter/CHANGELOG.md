@@ -1,5 +1,28 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Messages can render as Markdown.** `MessageRenderer` is the seam,
+  `PlainTextMessageRenderer` is still the default, and
+  `MarkdownMessageRenderer` covers what models actually write: headings, lists,
+  quotes, bold, italic, inline code, links, and fenced code blocks with a copy
+  button. Pass it to `AgentChatView(renderer:)` or `ChatEntryTile(renderer:)`.
+- The renderer is **streaming-safe**, which general Markdown packages are not:
+  they parse finished documents, so a half-arrived ``` fence is a syntax error
+  rather than a code block that has not closed yet — and in a chat that
+  flickers on every answer containing code. An unclosed marker here stays text
+  until its pair arrives.
+- `AgentChatView(onLinkTap:)`, because opening a URL needs a plugin and the
+  framework does not choose one for an application.
+- The parser is public — `parseMarkdownBlocks`, `parseInline` and the block and
+  inline node types — so an application can render the same structure its own
+  way.
+
+No dependency was added. A Markdown package here would be a Markdown package in
+every application that depends on the umbrella, whether or not it renders any.
+
 ## 0.2.0
 
 - The tool approval sheet warns when a request follows untrusted content,

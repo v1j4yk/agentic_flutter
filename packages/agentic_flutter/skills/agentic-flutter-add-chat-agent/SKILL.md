@@ -106,6 +106,27 @@ class _ChatScreenState extends State<ChatScreen> {
 }
 ```
 
+### Render what the model actually wrote
+
+Answers come back in Markdown. The default renderer shows it verbatim — literal
+asterisks and fences — which is the first thing anyone notices in a demo:
+
+```dart
+AgentChatView(
+  controller: _chat,
+  renderer: const MarkdownMessageRenderer(),
+  onLinkTap: (uri) => launchUrl(uri),   // links are inert without this
+);
+```
+
+`MarkdownMessageRenderer` covers what models emit: headings, lists, quotes,
+bold, italic, inline code, links, and fenced code blocks with a copy button. It
+is streaming-safe — a half-arrived ``` fence renders as a code block in
+progress rather than flickering or disappearing.
+
+For anything richer, implement `MessageRenderer` over the package your design
+already uses; it is one method.
+
 `_chat.send(text)` sends a turn, `_chat.entries` is the transcript,
 `_chat.isBusy` and `_chat.activity` drive your own UI, `_chat.cancel()` stops the
 run, `_chat.clear()` starts a new conversation. Pass `entryBuilder:` to
