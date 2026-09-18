@@ -7,7 +7,7 @@ Dart throughout.
 [![pub package](https://img.shields.io/pub/v/agentic_flutter.svg?label=agentic_flutter)](https://pub.dev/packages/agentic_flutter)
 [![pub points](https://img.shields.io/pub/points/agentic_flutter)](https://pub.dev/packages/agentic_flutter/score)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![tests](https://img.shields.io/badge/tests-1083%20passing-brightgreen.svg)](#testing-philosophy)
+[![ci](https://github.com/v1j4yk/agentic_flutter/actions/workflows/ci.yaml/badge.svg?branch=main)](https://github.com/v1j4yk/agentic_flutter/actions/workflows/ci.yaml)
 
 ```yaml
 dependencies:
@@ -28,9 +28,10 @@ create_agentic_app my_app --provider=gemini
 cd my_app && flutter create . --platforms android,ios && flutter run
 ```
 
-> **Status: 0.1.1, early development.** All eleven packages are published,
+> **Status: 0.2.0, early development.** All fourteen packages are published,
 > tested and documented. APIs may change until 1.0; see
-> [Roadmap](#roadmap) for what comes next.
+> [Roadmap](#roadmap) for what comes next, and
+> [`doc/migration-0.2.md`](doc/migration-0.2.md) if you are coming from 0.1.x.
 
 ---
 
@@ -621,29 +622,34 @@ also change things.
 
 ## Roadmap
 
-**Now** — a 0.2 release to pub.dev. Everything that had to happen first is
-done: benchmarks that falsified two claims in these docs, a conformance suite
-holding every adapter to one contract nightly, a project template verified by
-compiling what it generates, and an API surface that is committed, checked, and
-has had its naming pass — `prune`, `using` and `tokenise` were renamed while
-they were still free to change, because a framework exporting names that
-generic into every application's namespace is a framework that collides with
-its users.
+**Shipped in 0.2.0** — everything that had to happen before a release people
+could build on: benchmarks that falsified two claims in these docs, a
+conformance suite holding every adapter to one contract nightly, a project
+template verified by compiling what it generates, on-device persistence,
+record-and-replay testing with evals, tool code generation, untrusted-content
+boundaries, and an API surface that is committed, checked, and has had its
+naming pass — `prune`, `using` and `tokenise` were renamed while they were
+still free to change, because a framework exporting names that generic into
+every application's namespace is a framework that collides with its users.
+
+**Next (0.3)** — the current Model Context Protocol (2026-07-28) with OAuth and
+elicitation, OpenTelemetry export so traces leave the process, a model
+catalogue so a retired model ID is caught by CI rather than by you, and chat
+widgets that render what models actually write.
+
+**Then (0.4)** — agent runs that survive the app being killed, human input
+mid-run, guardrails, handoffs, and documents the rest of the world sends: PDFs.
 
 **Then** — the adapters the ports were designed for and this repository should
-not own: `sqlite-vec` and Isar `VectorStore` implementations, a
-`flutter_secure_storage` `SecretStore`, and platform-tool packages for camera,
-location and speech. Each is a small package depending on one layer, which is
-what the layering was for.
-
-**Then** — the adapters the ports were designed for and this repository should
-not own: `sqlite-vec` and Isar `VectorStore` implementations, a
+not own: `sqlite-vec`, pgvector and ObjectBox `VectorStore` implementations, a
 `flutter_secure_storage` `SecretStore`, and platform-tool packages for camera,
 location and speech. Each is a small package depending on one layer, which is
 what the layering was for.
 
 See [`doc/architecture.md`](doc/architecture.md) for the layering, the extension
-points and the API shapes the unbuilt packages are designed against.
+points and the API shapes the unbuilt packages are designed against, and
+[`doc/strategy/`](doc/strategy/README.md) for the longer-range plan the
+versions above come from.
 
 ## Contributing
 
