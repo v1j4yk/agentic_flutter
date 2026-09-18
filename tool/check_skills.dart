@@ -34,7 +34,8 @@ Future<void> main(List<String> arguments) async {
     return;
   }
 
-  final known = _knownApiNames(Directory('${root.path}/api'));
+  final known = _knownApiNames(Directory('${root.path}/api'))
+    ..addAll(_secondaryLibraryNames(packages));
   if (known.isEmpty) {
     stderr.writeln(
       'No API snapshots found in api/. Run `melos run api:write` first.',
@@ -145,7 +146,9 @@ final class _Skill {
       name: frontmatter['name'],
       description: frontmatter['description'],
       bodyLines: '\n'.allMatches(content).length + 1,
-      dartIdentifiers: _dartIdentifiers(content),
+      dartIdentifiers: _dartIdentifiers(
+        content,
+      ).difference(_sampleTypes(content)),
       references: _references(content),
       missingFile: false,
     );
@@ -258,6 +261,61 @@ final class _Problem {
   final bool isError;
 }
 
+/// Type names a skill declares as belonging to the reader's own code.
+///
+/// An example needs something concrete to act on — a `Customer`, a
+/// `DebugScreen` — and those names are by definition not in any API snapshot.
+/// Declaring them under `metadata.sample-types` keeps the check strict about
+/// everything else, and documents for a reader which names are theirs to
+/// supply:
+///
+/// ```yaml
+/// metadata:
+///   sample-types: Customer, DebugScreen
+/// ```
+Set<String> _sampleTypes(String content) {
+  if (!content.startsWith('---')) return <String>{};
+  final end = content.indexOf('\n---', 3);
+  if (end < 0) return <String>{};
+  final match = RegExp(
+    r'^\s*sample-types:\s*(.+)$',
+    multiLine: true,
+  ).firstMatch(content.substring(0, end));
+  if (match == null) return <String>{};
+  return <String>{
+    for (final name in match.group(1)!.split(','))
+      if (name.trim().isNotEmpty) name.trim(),
+  };
+}
+
+/// Names exported by a package's *other* public libraries.
+///
+/// The API snapshots cover each package's main barrel, which is the surface
+/// that matters for compatibility. A package may have more than one public
+/// library, though — `package:agentic_mcp/io.dart` holds the subprocess
+/// transport, so that the main one still compiles for the web — and a skill
+/// teaching it is correct even though the snapshot has never heard of it.
+Set<String> _secondaryLibraryNames(Directory packages) {
+  final names = <String>{};
+  final shown = RegExp(r'show\s+([^;]+);', multiLine: true);
+  for (final package in packages.listSync().whereType<Directory>()) {
+    final lib = Directory('${package.path}/lib');
+    if (!lib.existsSync()) continue;
+    final barrel = '${_basename(package.path)}.dart';
+    for (final file in lib.listSync().whereType<File>()) {
+      if (!file.path.endsWith('.dart')) continue;
+      if (_basename(file.path) == barrel) continue; // already in the snapshot
+      for (final match in shown.allMatches(file.readAsStringSync())) {
+        for (final name in match.group(1)!.split(',')) {
+          final trimmed = name.trim();
+          if (trimmed.isNotEmpty) names.add(trimmed);
+        }
+      }
+    }
+  }
+  return names;
+}
+
 /// Every public name the framework exports, from the committed snapshots.
 Set<String> _knownApiNames(Directory api) {
   if (!api.existsSync()) return <String>{};
@@ -289,10 +347,22 @@ Set<String> _knownApiNames(Directory api) {
 /// renamed, and the ones an assistant copies verbatim.
 Set<String> _dartIdentifiers(String content) {
   final identifiers = <String>{};
+  final declared = <String>{};
   final fence = RegExp(r'```dart\n([\s\S]*?)```', multiLine: true);
   final word = RegExp(r'\b[A-Z][A-Za-z0-9]{2,}\b');
+  // A skill that teaches "write your own event type" declares one in its
+  // example. Those names are the sample's own and cannot be in an API
+  // snapshot, so collect them and exclude them below.
+  final declaration = RegExp(
+    r'^\s*(?:abstract\s+|final\s+|base\s+|sealed\s+|interface\s+|mixin\s+)*'
+    r'(?:class|enum|extension type|typedef)\s+([A-Z][A-Za-z0-9]*)',
+    multiLine: true,
+  );
   for (final block in fence.allMatches(content)) {
     final code = block.group(1) ?? '';
+    for (final match in declaration.allMatches(code)) {
+      declared.add(match.group(1)!);
+    }
     for (final line in code.split('\n')) {
       // Comments and string literals are prose — a tool description, a prompt,
       // an error message — and may contain any capitalised word. Only code
@@ -309,7 +379,7 @@ Set<String> _dartIdentifiers(String content) {
       }
     }
   }
-  return identifiers;
+  return identifiers.difference(declared);
 }
 
 /// Skill names referenced from a "See also" section.
@@ -372,14 +442,17 @@ String _basename(String path) =>
 /// Names that come from Flutter, the SDK or a code sample's own domain, and so
 /// cannot be checked against the framework's API snapshots.
 const Set<String> _external = <String>{
-  // Flutter framework
+  // Flutter framework, and packages an example tells the reader to add
   'AppBar', 'BuildContext', 'ChangeNotifier', 'Colors', 'EdgeInsets',
-  'GlobalKey', 'Key', 'MaterialApp', 'NavigatorState', 'Scaffold', 'State',
-  'StatefulWidget', 'StatelessWidget', 'Text', 'ThemeData', 'Widget',
-  'WidgetsBinding',
+  'FlutterSecureStorage', 'GlobalKey', 'Key', 'MaterialApp', 'NavigatorState',
+  'Scaffold', 'State', 'StatefulWidget', 'StatelessWidget', 'Text', 'ThemeData',
+  'Widget', 'WidgetsBinding',
   // Dart SDK
-  'DateTime', 'Duration', 'Future', 'Iterable', 'List', 'Map', 'Object',
-  'Set', 'Stream', 'String', 'Uri',
-  // Names that belong to the reader's own application in an example
-  'MyApp', 'ChatScreen', 'ExampleApp', 'CameraTool',
+  'DateTime', 'Duration', 'Future', 'Iterable', 'List', 'Map', 'MapEntry',
+  'Object', 'Platform', 'Process', 'RegExp', 'Set', 'Stream', 'String',
+  'Uri',
+  // Names that belong to the reader's own application in an example: the
+  // domain types a skill invents to have something concrete to show.
+  'MyApp', 'ChatScreen', 'ExampleApp', 'CameraTool', 'Invoice', 'Recipe',
+  'Order', 'OrderTools', 'Note', 'Ingredient', 'Difficulty',
 };
