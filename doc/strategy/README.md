@@ -16,6 +16,7 @@ market research gathered the same day.
 | 6 | [Competitive analysis](06-competitive-analysis.md) — Dart and cross-language matrices, gaps, positioning |
 | 7 | [Roadmap](07-roadmap.md) — 6 months, 12 months, 24-month vision, capacity, risks, KPIs |
 | 8 | [pub.dev success strategy](08-pubdev-success-strategy.md) — listing, Agent Skills, docs, community, enterprise, 90-day launch |
+| 9 | [Branches, merge and release](09-branches-merge-and-release.md) — what the 0.3 commits are, how to merge the stacked branches, the publishing order, and what must happen before 0.3.0 ships |
 
 ## Executive summary
 
