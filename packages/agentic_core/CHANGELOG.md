@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `TraceContext.fromTraceParent`, `fromHeaders` and `toHeaders`: read a W3C
+  trace-context header and continue that trace, or write the headers that
+  continue it in the next hop. Malformed input returns null rather than
+  throwing — a header an outside caller controls being wrong means "start a new
+  trace", not "fail the request" — and header names are matched
+  case-insensitively, because a lookup that misses silently starts a new trace
+  for every request.
+- `TraceContext.traceState`, carried through untouched. The framework never
+  reads it and never invents it; it only refuses to drop what a backend put
+  there.
+- `AgenticContext.root(traceContext:)`, so a server can join the trace that
+  arrived with a request instead of starting its own.
 ## 0.2.0
 
 - `JsonSchema.coerce` treats `null` for an optional, non-nullable property as

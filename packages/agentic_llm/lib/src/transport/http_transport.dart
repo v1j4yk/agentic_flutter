@@ -77,7 +77,7 @@ final class LlmHttpTransport implements Disposable {
     final token = context?.cancellation ?? CancellationToken.none;
 
     final request = http.Request('POST', _resolve(path))
-      ..headers.addAll(_requestHeaders(extraHeaders))
+      ..headers.addAll(_requestHeaders(extraHeaders, context: context))
       ..body = jsonEncode(body);
 
     final response = await token.race(
@@ -107,7 +107,7 @@ final class LlmHttpTransport implements Disposable {
     final request = http.Request(
       'GET',
       query.isEmpty ? url : url.replace(queryParameters: query),
-    )..headers.addAll(_requestHeaders(extraHeaders));
+    )..headers.addAll(_requestHeaders(extraHeaders, context: context));
 
     final response = await token.race(
       _send(request, path),
@@ -164,7 +164,7 @@ final class LlmHttpTransport implements Disposable {
 
     final request = http.Request('POST', _resolve(path))
       ..headers.addAll(<String, String>{
-        ..._requestHeaders(extraHeaders),
+        ..._requestHeaders(extraHeaders, context: context),
         'accept': 'text/event-stream',
       })
       ..body = jsonEncode(body);
@@ -287,12 +287,21 @@ final class LlmHttpTransport implements Disposable {
         'way.';
   }
 
-  Map<String, String> _requestHeaders(Map<String, String> extra) =>
-      <String, String>{
-        'content-type': 'application/json',
-        ..._headers,
-        ...extra,
-      };
+  /// Headers for one request, including the trace this call belongs to.
+  ///
+  /// A provider will not read `traceparent`, but a proxy, a gateway or your own
+  /// backend in front of one will: without it, the span for "the model call"
+  /// and the span for "the request that reached our proxy" are two unrelated
+  /// traces, and nobody can answer which turn was slow.
+  Map<String, String> _requestHeaders(
+    Map<String, String> extra, {
+    AgenticContext? context,
+  }) => <String, String>{
+    'content-type': 'application/json',
+    ...?context?.traceContext?.toHeaders(),
+    ..._headers,
+    ...extra,
+  };
 
   Uri _resolve(String path) {
     if (path.startsWith('http://') || path.startsWith('https://')) {

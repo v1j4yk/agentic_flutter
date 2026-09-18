@@ -99,6 +99,13 @@ final class McpHttpTransport implements McpTransport {
   /// revisions at once.
   String? protocolVersion;
 
+  /// The run this transport is carrying traffic for, when there is one.
+  ///
+  /// Set by the client, like [protocolVersion]. Its only use here is the
+  /// `traceparent` header: without it a server's spans start a trace of their
+  /// own, and "which hop was slow" stops being answerable.
+  AgenticContext? context;
+
   @override
   Stream<JsonMap> get incoming => _incoming.stream;
 
@@ -227,6 +234,10 @@ final class McpHttpTransport implements McpTransport {
   }
 
   Map<String, String> _requestHeaders() => <String, String>{
+    // The server is a different process, and often a different company's. A
+    // `traceparent` is what lets its spans join this run's trace instead of
+    // starting an unrelated one.
+    ...?context?.traceContext?.toHeaders(),
     ..._headers,
     kSessionIdHeader: ?_sessionId,
     kProtocolVersionHeader: ?protocolVersion,

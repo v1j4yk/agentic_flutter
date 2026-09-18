@@ -4,6 +4,15 @@
 
 ### Added
 
+- Every provider request now carries `traceparent` (and `tracestate`) when the
+  `AgenticContext` has a trace. Providers do not read it; the proxy, gateway or
+  backend in front of one does — and without it, "the model call" and "the
+  request that reached our proxy" are two unrelated traces, so nobody can say
+  which turn was slow. Trace headers are merged beneath the configured ones, so
+  a name collision can never displace authentication.
+
+### Added
+
 - **Model constants for every provider.** `AnthropicModels.opus`, `.sonnet`,
   `.haiku`; `OpenAiModels`, `GeminiModels`, `GrokModels`, `DeepSeekModels` and
   `MistralModels`. `model` is still a plain `String` everywhere, so any

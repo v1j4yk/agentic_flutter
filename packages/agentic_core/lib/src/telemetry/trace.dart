@@ -46,6 +46,7 @@ final class TraceContext {
     required this.spanId,
     this.parentSpanId,
     this.sampled = true,
+    this.traceState,
   });
 
   /// Identifier shared by every span in the run.
@@ -64,12 +65,20 @@ final class TraceContext {
   /// complete.
   final bool sampled;
 
+  /// The W3C `tracestate` header, carried through untouched.
+  ///
+  /// Vendor-specific key-value data that belongs to whoever started the trace.
+  /// This framework never reads it and never invents it; it exists so that a
+  /// hop through here does not silently drop what a backend put there.
+  final String? traceState;
+
   /// Serialises the context for propagation.
   JsonMap toJson() => pruneNulls(<String, Object?>{
     'traceId': traceId,
     'spanId': spanId,
     'parentSpanId': parentSpanId,
     'sampled': sampled,
+    'traceState': traceState,
   });
 
   /// Restores a context produced by [toJson].
@@ -78,7 +87,64 @@ final class TraceContext {
     spanId: json['spanId']! as String,
     parentSpanId: json['parentSpanId'] as String?,
     sampled: json['sampled'] as bool? ?? true,
+    traceState: json['traceState'] as String?,
   );
+
+  /// Parses a W3C `traceparent` header value, or returns null.
+  ///
+  /// Null rather than throwing, because this parses a header an outside caller
+  /// controls: a malformed one means "start a new trace", not "fail the
+  /// request". Per the specification, an all-zero trace or span id is invalid,
+  /// and a version this code does not know is accepted as long as the first
+  /// four fields parse — which is how the format stays forward-compatible.
+  static TraceContext? fromTraceParent(String value, {String? traceState}) {
+    final parts = value.trim().split('-');
+    if (parts.length < 4) return null;
+
+    final [version, traceId, spanId, flags, ...] = parts;
+    if (version.length != 2 || version == 'ff') return null;
+    if (traceId.length != 32 || spanId.length != 16) return null;
+    if (!_isHex(version) || !_isHex(traceId) || !_isHex(spanId)) return null;
+    if (!_isHex(flags) || flags.length != 2) return null;
+    if (traceId == '0' * 32 || spanId == '0' * 16) return null;
+
+    return TraceContext(
+      traceId: traceId.toLowerCase(),
+      // The incoming span is this request's parent, not this request's span:
+      // getting that backwards produces a trace where every hop is a sibling.
+      spanId: spanId.toLowerCase(),
+      parentSpanId: spanId.toLowerCase(),
+      sampled: int.parse(flags, radix: 16) & 0x01 == 0x01,
+      traceState: traceState,
+    );
+  }
+
+  /// Reads a context from request headers, matching names case-insensitively.
+  ///
+  /// HTTP header names are case-insensitive, and clients disagree about the
+  /// casing they hand you — a lookup for `traceparent` that misses
+  /// `Traceparent` silently starts a new trace for every request.
+  static TraceContext? fromHeaders(Map<String, String> headers) {
+    String? value(String name) {
+      for (final MapEntry(key: key, value: entry) in headers.entries) {
+        if (key.toLowerCase() == name) return entry;
+      }
+      return null;
+    }
+
+    final parent = value('traceparent');
+    if (parent == null) return null;
+    return fromTraceParent(parent, traceState: value('tracestate'));
+  }
+
+  /// The headers that continue this trace in an outgoing request.
+  Map<String, String> toHeaders() => <String, String>{
+    'traceparent': toTraceParent(),
+    if (traceState case final state? when state.isNotEmpty) 'tracestate': state,
+  };
+
+  static bool _isHex(String value) =>
+      value.isNotEmpty && RegExp(r'^[0-9a-fA-F]+$').hasMatch(value);
 
   /// Renders the context as a W3C `traceparent` header value.
   ///

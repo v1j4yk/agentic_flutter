@@ -79,6 +79,9 @@ final class AgenticContext {
   /// The defaults are deliberately silent — a [NoopLogger], a [NoopEventBus]
   /// and a non-exporting [Tracer] — so that a library using the framework
   /// produces no output unless the host application asked for it.
+  /// [traceContext] continues a trace that started somewhere else — read it
+  /// from the incoming request with `TraceContext.fromHeaders`, and this run's
+  /// spans join that trace rather than starting one of their own.
   factory AgenticContext.root({
     String? runId,
     AgenticLogger? logger,
@@ -90,6 +93,7 @@ final class AgenticContext {
     String name = 'root',
     Duration? timeout,
     Map<String, Object?> metadata = const <String, Object?>{},
+    TraceContext? traceContext,
   }) {
     final generator = ids ?? Ulid();
     final token = timeout == null
@@ -106,6 +110,7 @@ final class AgenticContext {
       name: name,
       deadline: timeout == null ? null : clock.now().add(timeout),
       metadata: metadata,
+      traceContext: traceContext,
     );
   }
 

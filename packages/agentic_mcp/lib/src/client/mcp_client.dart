@@ -218,7 +218,9 @@ final class McpClient implements Disposable {
     // The revision is echoed on every later HTTP request, which is what lets a
     // server host several revisions behind one endpoint.
     if (transport case final McpHttpTransport http) {
-      http.protocolVersion = agreed;
+      http
+        ..protocolVersion = agreed
+        ..context = context;
     }
 
     await notify(McpMethod.initialized);

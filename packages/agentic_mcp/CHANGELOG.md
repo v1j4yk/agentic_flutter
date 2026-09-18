@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- The streamable-HTTP transport sends `traceparent` for the run it is carrying
+  traffic for, so an MCP server's spans join the calling run's trace instead of
+  starting one of their own. The client sets it during initialisation, the same
+  way it sets the negotiated protocol revision.
 ## 0.2.0
 
 - MCP tools return untrusted content: whatever a remote server returns was
