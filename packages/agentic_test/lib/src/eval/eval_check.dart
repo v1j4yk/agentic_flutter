@@ -95,6 +95,29 @@ abstract base class EvalCheck {
   /// The run used at most [tokens] tokens in total.
   const factory EvalCheck.maxTokens(int tokens) = _MaxTokens;
 
+  /// The run called tools in the order [steps] describes.
+  ///
+  /// `calledTool` asks whether a tool ran at all. This asks about the shape of
+  /// the whole run, which is where agents actually go wrong: looking up the
+  /// order *before* refunding it, searching before answering, not retrying a
+  /// tool five times.
+  ///
+  /// ```dart
+  /// EvalCheck.trajectory([
+  ///   ToolStep('lookup_order', arguments: {'orderId': '42'}),
+  ///   ToolStep.any(),                       // anything, once
+  ///   ToolStep('issue_refund'),
+  /// ]);
+  /// ```
+  ///
+  /// [mode] decides how strict the match is; the default allows other calls in
+  /// between, because an agent that also checked the weather is odd but not
+  /// wrong. Use [TrajectoryMatch.exact] when the sequence is the contract.
+  const factory EvalCheck.trajectory(
+    List<ToolStep> steps, {
+    TrajectoryMatch mode,
+  }) = _Trajectory;
+
   /// A check written as a function.
   ///
   /// [check] returns `null` when the run passes and the reason when it does
@@ -361,6 +384,117 @@ final class _Judged extends EvalCheck {
       return fail('the grader failed: ${error.message}');
     }
     return verdict.pass ? pass(verdict.reason) : fail(verdict.reason);
+  }
+}
+
+/// One expected tool call in a trajectory.
+///
+/// [ToolStep.any] matches whatever ran next, which is what keeps a trajectory
+/// readable when only some of the steps matter.
+@immutable
+final class ToolStep {
+  /// A step matching a call to [name], optionally checking its arguments.
+  const ToolStep(this.name, {this.arguments, this.where});
+
+  /// A step matching any one call.
+  const ToolStep.any() : name = null, arguments = null, where = null;
+
+  /// The tool that must have been called, or null for any.
+  final String? name;
+
+  /// Arguments the call must contain. Extra arguments are allowed: a model may
+  /// pass an optional parameter, and a trajectory that breaks for that would be
+  /// rewritten to not check arguments at all.
+  final Map<String, Object?>? arguments;
+
+  /// An arbitrary predicate on the call's arguments.
+  final bool Function(Map<String, Object?> arguments)? where;
+
+  /// Whether [call] satisfies this step.
+  bool matches(ToolCallPart call) {
+    if (name != null && call.name != name) return false;
+    final expected = arguments;
+    if (expected != null) {
+      for (final MapEntry(key: key, value: value) in expected.entries) {
+        if (!call.arguments.containsKey(key)) return false;
+        if (call.arguments[key] != value) return false;
+      }
+    }
+    final predicate = where;
+    if (predicate != null && !predicate(call.arguments)) return false;
+    return true;
+  }
+
+  @override
+  String toString() {
+    if (name == null) return '*';
+    if (arguments == null) return '`$name`';
+    return '`$name`(${jsonEncode(arguments)})';
+  }
+}
+
+/// How strictly a trajectory must match the calls a run made.
+enum TrajectoryMatch {
+  /// The steps are exactly the calls made, in order, with nothing else.
+  exact,
+
+  /// The steps appear in this order; other calls may happen in between.
+  inOrder,
+
+  /// Every step appears somewhere, in any order.
+  anyOrder,
+}
+
+final class _Trajectory extends EvalCheck {
+  const _Trajectory(this.steps, {this.mode = TrajectoryMatch.inOrder});
+
+  final List<ToolStep> steps;
+  final TrajectoryMatch mode;
+
+  @override
+  String get description => 'called ${steps.join(' → ')} (${mode.name})';
+
+  @override
+  CheckResult evaluate(
+    AgentInput input,
+    AgentResult result, {
+    AgenticContext? context,
+  }) {
+    final calls = result.allToolCalls;
+    final actual = calls.isEmpty
+        ? '(no tools called)'
+        : calls.map((c) => '`${c.name}`').join(' → ');
+
+    switch (mode) {
+      case TrajectoryMatch.exact:
+        if (calls.length != steps.length) {
+          return fail('called $actual');
+        }
+        for (var i = 0; i < steps.length; i++) {
+          if (!steps[i].matches(calls[i])) {
+            return fail('step ${i + 1} expected ${steps[i]}, got $actual');
+          }
+        }
+        return pass();
+
+      case TrajectoryMatch.inOrder:
+        var index = 0;
+        for (final call in calls) {
+          if (index < steps.length && steps[index].matches(call)) index++;
+        }
+        if (index == steps.length) return pass();
+        return fail('reached step $index of ${steps.length}; called $actual');
+
+      case TrajectoryMatch.anyOrder:
+        final remaining = List<ToolCallPart>.of(calls);
+        for (final step in steps) {
+          final match = remaining.indexWhere(step.matches);
+          if (match < 0) return fail('never called $step; called $actual');
+          // Removed so two steps cannot be satisfied by the same call.
+          remaining.removeAt(match);
+        }
+        return pass();
+    }
   }
 }
 

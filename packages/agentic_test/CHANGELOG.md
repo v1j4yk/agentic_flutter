@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- `EvalCheck.trajectory`, with `ToolStep` and `TrajectoryMatch`: assert the
+  *order* tools ran in, not only that they ran. `inOrder` by default, because
+  an agent that also called something else is odd rather than wrong; `exact`
+  and `anyOrder` for the cases where that is the contract. Arguments are
+  contained rather than equal, so an extra optional argument does not fail a
+  check.
+- `EvalReport.toJUnitXml()`, so eval failures appear in CI beside unit-test
+  failures rather than in a log. One entry per trial, so a case that passes
+  four times in five reads as flaky instead of as a pass.
+- `EvalReport.fromJson`, `EvalReport.compareTo`, `EvalComparison` and
+  `EvalRegressionError`: store a report as a baseline, and fail a build when
+  the pass rate falls by more than a tolerance. The tolerance exists because a
+  gate that fires on ordinary variance is a gate that gets disabled.
+  `EvalComparison.missing` names cases the baseline had and this run did not —
+  the quiet way a suite stops testing something.
+- `EvalCaseReport.summary`, the numbers-without-transcripts form a stored
+  baseline restores to.
+
+### Changed
+
+- `EvalReport.passRate` is counted per case rather than by walking trials, so a
+  report restored from a baseline reports the rate it was saved with instead of
+  zero.
+
 ## 0.2.0
 
 - Released with the rest of the framework at 0.2.0, which it now

@@ -448,7 +448,8 @@ const Set<String> _external = <String>{
   'Scaffold', 'State', 'StatefulWidget', 'StatelessWidget', 'Text', 'ThemeData',
   'Widget', 'WidgetsBinding',
   // Dart SDK
-  'DateTime', 'Duration', 'Future', 'Iterable', 'List', 'Map', 'MapEntry',
+  'DateTime', 'Duration', 'File', 'Future', 'Iterable', 'List', 'Map',
+  'MapEntry',
   'Object', 'Platform', 'Process', 'RegExp', 'Set', 'Stream', 'String',
   'Uri',
   // Names that belong to the reader's own application in an example: the

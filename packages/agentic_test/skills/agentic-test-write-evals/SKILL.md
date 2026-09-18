@@ -60,10 +60,57 @@ report.requirePassRate(0.9);     // throws below the threshold — this is the g
 | `EvalCheck.didNotCallTool('name')` | it stayed away from something dangerous |
 | `EvalCheck.maxSteps(6)` / `maxTokens(20000)` | it did not wander |
 | `EvalCheck.judgedBy(model, rubric: '…')` | a model scores the answer |
+| `EvalCheck.trajectory([...], mode: …)` | tools ran in this order, not merely at all |
 | `EvalCheck.custom('…', (result) async => …)` | anything else; return null to pass, a reason to fail |
 
 The negative checks matter most. "Did not issue a refund without an order" is a
 safety property, and safety properties are what an eval suite is really for.
+
+## Asserting the shape of a run
+
+`calledTool` asks whether a tool ran. `trajectory` asks about the order, which
+is where agents actually go wrong — refunding before looking the order up,
+answering before searching:
+
+```dart
+EvalCheck.trajectory([
+  ToolStep('lookup_order', arguments: {'orderId': '42'}),
+  ToolStep.any(),                       // anything, once
+  ToolStep('issue_refund'),
+]);
+```
+
+`TrajectoryMatch.inOrder` (the default) allows other calls in between, because
+an agent that also checked stock is odd rather than wrong. `exact` is the
+sequence and nothing else; `anyOrder` only asks that each step happened, and one
+call never satisfies two steps. Arguments are *contained*, not equal, so an
+extra optional argument does not fail the check.
+
+## Gating CI, and knowing whether you made it worse
+
+```dart
+final report = await suite.run(agent, repeat: 5);
+
+File('build/evals.xml').writeAsStringSync(report.toJUnitXml());   // GitHub, GitLab, Jenkins
+File('eval/baseline.json').writeAsStringSync(jsonEncode(report.toJson()));
+
+final baseline = EvalReport.fromJson(
+  jsonDecode(File('eval/baseline.json').readAsStringSync()) as Map<String, Object?>,
+);
+final change = report.compareTo(baseline);
+print(change.summary);                 // names each case that fell
+change.failIfRegressed(maxDrop: 0.05);
+```
+
+JUnit XML puts eval failures beside unit-test failures in CI rather than in a
+log, one entry per *trial*, so a case passing four times in five shows as flaky
+instead of as a pass.
+
+`failIfRegressed` has a tolerance by default, deliberately: these runs are not
+deterministic, and a gate that fires on ordinary variance is a gate somebody
+disables. Tolerance zero is honest only when the suite replays cassettes.
+`comparison.missing` names cases in the baseline the run did not cover — the
+silent way a suite stops testing something.
 
 ## LLM as judge, used carefully
 

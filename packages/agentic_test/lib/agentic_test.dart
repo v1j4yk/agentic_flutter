@@ -38,12 +38,15 @@ export 'src/cassette/cassette.dart'
     show Cassette, CassetteInteraction, CassetteMismatchError, Redactor;
 export 'src/cassette/cassette_models.dart'
     show CassetteMode, RecordingChatModel, ReplayChatModel, cassetteModel;
-export 'src/eval/eval_check.dart' show CheckResult, EvalCheck;
+export 'src/eval/eval_check.dart'
+    show CheckResult, EvalCheck, ToolStep, TrajectoryMatch;
 export 'src/eval/eval_suite.dart'
     show
         EvalCase,
         EvalCaseReport,
+        EvalComparison,
         EvalFailedError,
+        EvalRegressionError,
         EvalReport,
         EvalSuite,
         EvalTrial;

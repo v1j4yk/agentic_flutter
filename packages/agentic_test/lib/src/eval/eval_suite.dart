@@ -102,24 +102,49 @@ final class EvalTrial {
 final class EvalCaseReport {
   /// Creates a case report.
   EvalCaseReport({required this.name, required List<EvalTrial> trials})
-    : trials = List<EvalTrial>.unmodifiable(trials);
+    : trials = List<EvalTrial>.unmodifiable(trials),
+      _passRate = null,
+      _trialCount = null;
+
+  /// Creates a case report with numbers but no transcripts.
+  ///
+  /// What a stored baseline restores to: keeping every trial would make a
+  /// baseline file large and unreadable, and a comparison only needs the rate.
+  const EvalCaseReport.summary({
+    required this.name,
+    required double passRate,
+    required int trialCount,
+  }) : trials = const <EvalTrial>[],
+       _passRate = passRate,
+       _trialCount = trialCount;
 
   /// The case.
   final String name;
 
-  /// Every trial, in attempt order.
+  /// Every trial, in attempt order. Empty for a restored baseline.
   final List<EvalTrial> trials;
 
+  final double? _passRate;
+  final int? _trialCount;
+
+  /// How many trials ran.
+  int get trialCount => _trialCount ?? trials.length;
+
   /// How many trials passed.
-  int get passed => trials.where((t) => t.passed).length;
+  int get passed => _passRate == null
+      ? trials.where((t) => t.passed).length
+      : (_passRate * trialCount).round();
 
   /// The fraction of trials that passed, from 0 to 1.
-  double get passRate => trials.isEmpty ? 0 : passed / trials.length;
+  double get passRate =>
+      _passRate ?? (trials.isEmpty ? 0 : passed / trials.length);
 
   /// Serialises the report.
   JsonMap toJson() => <String, Object?>{
     'name': name,
     'passed': passed,
+    'passRate': passRate,
+    'trialCount': trialCount,
     'trials': trials.map((t) => t.toJson()).toList(),
   };
 }
@@ -133,6 +158,24 @@ final class EvalReport {
     required List<EvalCaseReport> cases,
     required this.duration,
   }) : cases = List<EvalCaseReport>.unmodifiable(cases);
+
+  /// Reads a report written by [toJson].
+  ///
+  /// Trials are not restored — a baseline is kept for its numbers, and storing
+  /// every transcript would make the file unreadable and large.
+  factory EvalReport.fromJson(JsonMap json) => EvalReport(
+    suite: json.requireString('suite'),
+    duration: Duration(milliseconds: json.intOr('durationMs', 0)),
+    cases: <EvalCaseReport>[
+      for (final entry in json.listOrEmpty('cases'))
+        if (entry is Map<String, Object?>)
+          EvalCaseReport.summary(
+            name: entry.requireString('name'),
+            passRate: entry.optionalDouble('passRate') ?? 0,
+            trialCount: entry.intOr('trialCount', 0),
+          ),
+    ],
+  );
 
   /// The suite's name.
   final String suite;
@@ -151,9 +194,14 @@ final class EvalReport {
       trials.where((t) => !t.passed).toList(growable: false);
 
   /// The fraction of all trials that passed, from 0 to 1.
+  ///
+  /// Counted per case rather than by walking the trials, so that a report
+  /// restored from a stored baseline — which keeps the numbers and drops the
+  /// transcripts — reports the rate it was saved with rather than zero.
   double get passRate {
-    final all = trials.toList();
-    return all.isEmpty ? 0 : all.where((t) => t.passed).length / all.length;
+    final total = cases.fold(0, (sum, c) => sum + c.trialCount);
+    if (total == 0) return 0;
+    return cases.fold(0, (sum, c) => sum + c.passed) / total;
   }
 
   /// Tokens spent across all trials, including failures.
@@ -236,8 +284,162 @@ final class EvalReport {
     'cases': cases.map((c) => c.toJson()).toList(),
   };
 
+  /// The report as JUnit XML, which is what CI systems render natively.
+  ///
+  /// GitHub Actions, GitLab and Jenkins all read this format, so a suite's
+  /// failures appear beside unit-test failures rather than buried in a log.
+  /// One `<testcase>` per trial, named `case #attempt`, so a case that passes
+  /// four times out of five shows as one flaky entry rather than as a pass.
+  ///
+  /// ```dart
+  /// File('build/evals.xml').writeAsStringSync(report.toJUnitXml());
+  /// ```
+  String toJUnitXml() {
+    final trialList = trials.toList();
+    final failed = trialList.where((t) => !t.passed).length;
+    final errored = trialList.where((t) => t.error != null).length;
+    final buffer = StringBuffer()
+      ..writeln('<?xml version="1.0" encoding="UTF-8"?>')
+      ..writeln(
+        '<testsuite name="${_xml(suite)}" tests="${trialList.length}" '
+        'failures="${failed - errored}" errors="$errored" '
+        'time="${duration.inMilliseconds / 1000}">',
+      );
+
+    for (final trial in trialList) {
+      final name = _xml('${trial.caseName} #${trial.attempt}');
+      final time = trial.duration.inMilliseconds / 1000;
+      if (trial.passed) {
+        buffer.writeln('  <testcase name="$name" time="$time"/>');
+        continue;
+      }
+      buffer.writeln('  <testcase name="$name" time="$time">');
+      if (trial.error case final error?) {
+        buffer.writeln(
+          '    <error message="${_xml('$error')}">${_xml('$error')}</error>',
+        );
+      } else {
+        final why = trial.failedChecks.map((c) => '$c').join('\n');
+        buffer.writeln(
+          '    <failure message="${_xml(trial.failedChecks.map((c) => c.description).join('; '))}">'
+          '${_xml(why)}</failure>',
+        );
+      }
+      buffer.writeln('  </testcase>');
+    }
+
+    return (buffer..writeln('</testsuite>')).toString();
+  }
+
+  /// Compares this report with an earlier one.
+  ///
+  /// The question an eval suite exists to answer is not "is it good" but "did
+  /// that change make it worse", and that needs yesterday's numbers. Store
+  /// [toJson] somewhere and read it back with [EvalReport.fromJson].
+  ///
+  /// ```dart
+  /// final change = report.compareTo(baseline);
+  /// change.failIfRegressed(maxDrop: 0.05);
+  /// ```
+  EvalComparison compareTo(EvalReport baseline) =>
+      EvalComparison(baseline: baseline, current: this);
+
   static String _percent(double rate) => '${(rate * 100).toStringAsFixed(0)}%';
 }
+
+/// Two runs of the same suite, and what changed between them.
+final class EvalComparison {
+  /// Creates a comparison.
+  const EvalComparison({required this.baseline, required this.current});
+
+  /// The earlier report.
+  final EvalReport baseline;
+
+  /// The report just produced.
+  final EvalReport current;
+
+  /// How much the overall pass rate moved. Negative is a regression.
+  double get delta => current.passRate - baseline.passRate;
+
+  /// Cases whose pass rate fell, worst first.
+  List<({String name, double before, double after})> get regressions {
+    final before = <String, double>{
+      for (final c in baseline.cases) c.name: c.passRate,
+    };
+    final moved = <({String name, double before, double after})>[
+      for (final c in current.cases)
+        if (before[c.name] case final was? when c.passRate < was)
+          (name: c.name, before: was, after: c.passRate),
+    ]..sort((a, b) => (a.after - a.before).compareTo(b.after - b.before));
+    return moved;
+  }
+
+  /// Cases in the baseline that this run did not cover.
+  List<String> get missing {
+    final names = current.cases.map((c) => c.name).toSet();
+    return <String>[
+      for (final c in baseline.cases)
+        if (!names.contains(c.name)) c.name,
+    ];
+  }
+
+  /// Throws when the suite got worse by more than [maxDrop].
+  ///
+  /// A small tolerance is deliberate: these runs are not deterministic, and a
+  /// gate that fires on ordinary variance is a gate that gets disabled. Zero
+  /// tolerance is for a suite that replays cassettes, where it is honest.
+  void failIfRegressed({double maxDrop = 0.05}) {
+    if (delta >= -maxDrop) return;
+    throw EvalRegressionError(this, maxDrop);
+  }
+
+  /// A readable summary of the change.
+  String get summary {
+    final direction = delta >= 0 ? 'up' : 'down';
+    final buffer = StringBuffer()
+      ..writeln(
+        '${current.suite}: ${_asPercent(baseline.passRate)} → '
+        '${_asPercent(current.passRate)} '
+        '($direction ${_asPercent(delta.abs())})',
+      );
+    for (final regression in regressions) {
+      buffer.writeln(
+        '  ${regression.name}: ${_asPercent(regression.before)} → '
+        '${_asPercent(regression.after)}',
+      );
+    }
+    for (final name in missing) {
+      buffer.writeln('  $name: in the baseline, not in this run');
+    }
+    return buffer.toString();
+  }
+}
+
+/// Thrown by [EvalComparison.failIfRegressed].
+final class EvalRegressionError extends Error {
+  /// Creates the error.
+  EvalRegressionError(this.comparison, this.maxDrop);
+
+  /// What was compared.
+  final EvalComparison comparison;
+
+  /// The tolerance that was exceeded.
+  final double maxDrop;
+
+  @override
+  String toString() =>
+      'EvalRegressionError: pass rate fell by more than '
+      '${_asPercent(maxDrop)}\n${comparison.summary}';
+}
+
+String _asPercent(double rate) => '${(rate * 100).toStringAsFixed(0)}%';
+
+/// Escapes text for an XML attribute or element body.
+String _xml(String text) => text
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;');
 
 /// Thrown by [EvalReport.requirePassRate] when a suite falls short.
 final class EvalFailedError extends Error {
