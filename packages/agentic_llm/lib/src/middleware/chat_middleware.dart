@@ -710,3 +710,104 @@ final class ObservableChatModel extends DelegatingChatModel {
   @override
   String toString() => 'ObservableChatModel($inner)';
 }
+
+/// A model the application can swap at run time.
+///
+/// # Why this exists
+///
+/// An agent, a workflow node and a chat controller all hold a [ChatModel] for
+/// as long as they live. If the person using the app may choose the model —
+/// "use the cheap one on mobile data", "use Opus for this conversation" — then
+/// every one of those holders would otherwise have to be rebuilt, and an agent
+/// rebuilt mid-conversation loses its session.
+///
+/// This is the indirection that makes the preference a setting rather than a
+/// restart:
+///
+/// ```dart
+/// final model = SwitchableChatModel(
+///   AnthropicChatModel(apiKey: key, model: AnthropicModels.sonnet),
+/// );
+/// final agent = ToolCallingAgent(model: model, /* … */);
+///
+/// // Later, from a settings screen. The agent, its session and its tools are
+/// // untouched; the next turn goes to the new model.
+/// await model.switchTo(
+///   AnthropicChatModel(apiKey: key, model: AnthropicModels.opus),
+/// );
+/// ```
+///
+/// # What switching does not do
+///
+/// A request already in flight finishes against the model it started on:
+/// swapping a provider underneath a half-streamed answer would interleave two
+/// models' tokens. The change applies from the next call.
+///
+/// Capabilities move with the model, so a switch to a smaller one can make a
+/// request that used to work fail its capability check — which is the honest
+/// outcome, and why the failure names the capability rather than the symptom.
+final class SwitchableChatModel implements ChatModel {
+  /// Creates a switchable model delegating to [initial].
+  ///
+  /// When [disposePrevious] is true — the default — the model being replaced
+  /// is disposed by [switchTo], which closes its HTTP client. Pass false when
+  /// the models are owned elsewhere, for example when they are cached and
+  /// switched back and forth.
+  SwitchableChatModel(ChatModel initial, {this.disposePrevious = true})
+    : _current = initial;
+
+  /// Whether [switchTo] disposes the model it replaces.
+  final bool disposePrevious;
+
+  ChatModel _current;
+  bool _disposed = false;
+
+  /// The model calls are currently delegated to.
+  ChatModel get current => _current;
+
+  /// Replaces the current model.
+  ///
+  /// Returns once the previous model has been disposed, if this owns it. Doing
+  /// nothing when [model] is already current keeps a settings screen that
+  /// writes on every rebuild from closing the connection it is using.
+  Future<void> switchTo(ChatModel model) async {
+    if (identical(model, _current)) return;
+    final previous = _current;
+    _current = model;
+    if (disposePrevious) await previous.dispose();
+  }
+
+  @override
+  ModelInfo get info => _current.info;
+
+  @override
+  Future<ChatResponse> generate(
+    ChatRequest request, {
+    AgenticContext? context,
+  }) {
+    _throwIfDisposed();
+    return _current.generate(request, context: context);
+  }
+
+  @override
+  Stream<ChatChunk> stream(ChatRequest request, {AgenticContext? context}) {
+    _throwIfDisposed();
+    return _current.stream(request, context: context);
+  }
+
+  @override
+  Future<void> dispose() async {
+    if (_disposed) return;
+    _disposed = true;
+    await _current.dispose();
+  }
+
+  void _throwIfDisposed() {
+    if (_disposed) {
+      throw InvalidStateException(
+        'This SwitchableChatModel was disposed. A disposed model cannot be '
+        'used or switched; create a new one.',
+      );
+    }
+  }
+}

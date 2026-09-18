@@ -105,11 +105,12 @@ nightly rather than on every push.
 | Variable | Effect |
 |---|---|
 | `OPENAI_API_KEY` | Enables OpenAI (chat and embeddings) |
-| `OPENAI_MODEL` | Overrides `gpt-4o-mini` |
+| `OPENAI_MODEL` | Overrides `gpt-5.6-luna` |
 | `ANTHROPIC_API_KEY` | Enables Anthropic |
-| `ANTHROPIC_MODEL` | Overrides `claude-3-5-haiku-latest` |
+| `ANTHROPIC_MODEL` | Overrides `claude-haiku-4-5` |
 | `GEMINI_API_KEY` | Enables Gemini (chat and embeddings) |
-| `GEMINI_MODEL` | Overrides `gemini-2.5-flash` |
+| `GEMINI_MODEL` | Overrides `gemini-3.8-flash` |
+| `DEEPSEEK_MODEL` | Overrides `deepseek-flash` |
 | `DEEPSEEK_API_KEY` | Enables DeepSeek |
 | `OLLAMA_BASE_URL` + `OLLAMA_MODEL` | Enables a local model |
 | `OLLAMA_CAPABILITIES` | Comma-separated, e.g. `toolCalling,streaming`. A local model's capabilities depend on which weights are loaded, so the adapter cannot know them |

@@ -1,5 +1,59 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Model constants for every provider.** `AnthropicModels.opus`, `.sonnet`,
+  `.haiku`; `OpenAiModels`, `GeminiModels`, `GrokModels`, `DeepSeekModels` and
+  `MistralModels`. `model` is still a plain `String` everywhere, so any
+  identifier a provider serves works, including one released after this
+  package: the constants are a convenience, not a whitelist.
+- **`ModelDirectory.listModels()`** on the OpenAI-compatible, Anthropic and
+  Gemini adapters, following each provider's pagination to the end. This is
+  what a model picker in an app should read, because only the provider knows
+  what a given key may call today. Ollama and llama.cpp answer it too.
+- **`SwitchableChatModel`**, so the model can be changed at run time — from a
+  settings screen, say — without rebuilding the agent holding it, which would
+  otherwise lose the session. A request in flight finishes on the model it
+  started.
+- `LlmHttpTransport.getJson`, the read-only call the listing endpoints need.
+
+### Changed
+
+- **Default model identifiers now name models that exist.** Every default had
+  gone stale, and two were retired outright:
+
+  | Adapter | Was | Now |
+  |---|---|---|
+  | `OpenAiCompatibleChatModel.openAi` | `gpt-4o` | `gpt-5.6` |
+  | `AnthropicChatModel` | `claude-sonnet-4-20250514` (retired) | `claude-sonnet-5` |
+  | `OpenAiCompatibleChatModel.grok` | `grok-2-latest` (retired) | `grok-4.6` |
+  | `GeminiChatModel` | `gemini-2.5-flash` | `gemini-3.8-flash` |
+  | `GeminiEmbeddingModel` | `gemini-embedding-001` | `gemini-embedding-2` |
+
+  Pass `model` explicitly to pin any of them. `text-embedding-3-small` is
+  unchanged, and still current.
+
+- `packages/agentic_integration` gained `bin/check_models.dart`, run nightly in
+  CI: it asks each provider for its model list and fails when a name this
+  framework ships is no longer served. The two defaults that rotted before were
+  both found by users, not by us.
+
+### Breaking
+
+- **`GeminiEmbeddingModel` defaults to a different embedding model**, and
+  embedding spaces are not comparable across models: an index written with
+  `gemini-embedding-001` cannot be searched with `gemini-embedding-2` queries,
+  and the results are plausible nonsense rather than an error. Either pass
+  `model: GeminiModels.embeddingLegacy` to keep an existing index working, or
+  re-embed every document.
+- **`OpenAiCompatibleChatModel.deepSeek` and `.mistral` now require `model`.**
+  Both providers publish dated identifiers or serve retired names through their
+  replacements, so a default was deciding — silently, and differently over time
+  — which model you pay for. `DeepSeekModels` and `MistralModels` name the
+  published options.
+
 ## 0.2.0
 
 - Released with the rest of the framework at 0.2.0, which it now

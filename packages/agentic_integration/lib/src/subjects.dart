@@ -162,7 +162,7 @@ SubjectSet discoverSubjects() {
       name: 'openai',
       createChat: () => OpenAiCompatibleChatModel.openAi(
         apiKey: apiKey,
-        model: env('OPENAI_MODEL') ?? 'gpt-4o-mini',
+        model: env('OPENAI_MODEL') ?? 'gpt-5.6-luna',
       ),
       createEmbeddings: () =>
           OpenAiCompatibleEmbeddingModel.openAi(apiKey: apiKey),
@@ -177,7 +177,7 @@ SubjectSet discoverSubjects() {
       name: 'anthropic',
       createChat: () => AnthropicChatModel(
         apiKey: apiKey,
-        model: env('ANTHROPIC_MODEL') ?? 'claude-3-5-haiku-latest',
+        model: env('ANTHROPIC_MODEL') ?? 'claude-haiku-4-5',
       ),
     ),
   );
@@ -189,7 +189,7 @@ SubjectSet discoverSubjects() {
       name: 'gemini',
       createChat: () => GeminiChatModel(
         apiKey: apiKey,
-        model: env('GEMINI_MODEL') ?? 'gemini-2.5-flash',
+        model: env('GEMINI_MODEL') ?? 'gemini-3.8-flash',
       ),
       createEmbeddings: () => GeminiEmbeddingModel(apiKey: apiKey),
     ),
@@ -200,7 +200,10 @@ SubjectSet discoverSubjects() {
     keyVariable: 'DEEPSEEK_API_KEY',
     build: (apiKey) => ProviderSubject(
       name: 'deepseek',
-      createChat: () => OpenAiCompatibleChatModel.deepSeek(apiKey: apiKey),
+      createChat: () => OpenAiCompatibleChatModel.deepSeek(
+        apiKey: apiKey,
+        model: env('DEEPSEEK_MODEL') ?? 'deepseek-flash',
+      ),
     ),
   );
 

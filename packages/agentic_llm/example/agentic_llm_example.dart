@@ -29,7 +29,7 @@ Future<void> main() async {
   if (apiKey != null) {
     provider = OpenAiCompatibleChatModel.openAi(
       apiKey: apiKey,
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.6-luna',
       pricing: const ModelPricing(inputPerMillion: 0.15, outputPerMillion: 0.6),
     );
   } else if (anthropicKey != null) {

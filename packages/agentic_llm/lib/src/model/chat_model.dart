@@ -25,7 +25,7 @@ import 'package:agentic_llm/src/model/model_info.dart';
 /// * be safe to share — a single instance serves concurrent requests.
 ///
 /// ```dart
-/// final model = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-4o');
+/// final model = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-5.6');
 /// final answer = await model.prompt('Explain Dart records in one sentence.');
 /// ```
 abstract interface class ChatModel implements Disposable {

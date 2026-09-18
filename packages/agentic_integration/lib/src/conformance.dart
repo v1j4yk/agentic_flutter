@@ -593,7 +593,10 @@ ChatModel? _withBadKey(ProviderSubject subject) {
     'openai' => OpenAiCompatibleChatModel.openAi(apiKey: bad),
     'anthropic' => AnthropicChatModel(apiKey: bad),
     'gemini' => GeminiChatModel(apiKey: bad),
-    'deepseek' => OpenAiCompatibleChatModel.deepSeek(apiKey: bad),
+    'deepseek' => OpenAiCompatibleChatModel.deepSeek(
+      apiKey: bad,
+      model: DeepSeekModels.flash,
+    ),
     _ => null,
   };
 }

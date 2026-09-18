@@ -29,7 +29,7 @@ near-identical adapters would mean eight copies of the same tool-call assembly
 drifting apart with every fix.
 
 ```dart
-final gpt    = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-4o');
+final gpt    = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-5.6');
 final claude = AnthropicChatModel(apiKey: anthropicKey);
 final gemini = GeminiChatModel(apiKey: googleKey);
 final local  = OpenAiCompatibleChatModel.ollama(model: 'qwen2.5:7b');
@@ -37,6 +37,69 @@ final local  = OpenAiCompatibleChatModel.ollama(model: 'qwen2.5:7b');
 
 Adding a provider the framework does not ship is a class implementing
 `ChatModel` in your own package. Nothing here changes.
+
+## Choosing a model
+
+`model` is always a plain `String`, so any identifier a provider serves works —
+including one released after this package was. The constants are a convenience
+and a starting point, not a whitelist:
+
+```dart
+AnthropicChatModel(apiKey: key, model: AnthropicModels.opus);    // or .sonnet, .haiku
+GeminiChatModel(apiKey: key, model: GeminiModels.flashLite);
+OpenAiCompatibleChatModel.openAi(apiKey: key, model: OpenAiModels.flagship);
+OpenAiCompatibleChatModel.mistral(apiKey: key, model: MistralModels.small);
+AnthropicChatModel(apiKey: key, model: 'claude-something-6');    // equally valid
+```
+
+`DeepSeekModels` and `GrokModels` exist too. `.deepSeek` and `.mistral` require
+`model` rather than defaulting: both providers publish dated names or serve
+retired ones through their replacements, so a default there would quietly decide
+which model you pay for.
+
+### Ask the provider what it serves
+
+Constants go stale; the provider's own list does not. Adapters implement
+`ModelDirectory`, which is what a model picker in an app should read — only the
+provider knows what a given key may call today:
+
+```dart
+final model = AnthropicChatModel(apiKey: key);
+for (final available in await model.listModels()) {
+  print('${available.id}  ${available.label}');
+}
+```
+
+It works against a local server too: Ollama and llama.cpp answer the same
+`GET /models` call.
+
+### Let the user change it
+
+A model chosen in a settings screen has to take effect without rebuilding the
+agent holding it — an agent rebuilt mid-conversation loses its session.
+`SwitchableChatModel` is that indirection:
+
+```dart
+final model = SwitchableChatModel(
+  AnthropicChatModel(apiKey: key, model: AnthropicModels.sonnet),
+);
+final agent = ToolCallingAgent(model: model, /* … */);
+
+// From the settings screen. The agent, its session and its tools are untouched.
+await model.switchTo(AnthropicChatModel(apiKey: key, model: AnthropicModels.opus));
+```
+
+A request already in flight finishes on the model it started, because swapping
+underneath a half-streamed answer would interleave two models' tokens.
+
+### When a name goes stale anyway
+
+It will: a model identifier is a fact about someone else's product. Two
+defaults here have already been outlived, and the second — `text-embedding-004`
+— failed silently, because an indexer records a failed document rather than
+throwing, so it looked like documents indexing into zero passages. `melos run
+models:check` compares every name this package ships against each provider's
+live list, and runs nightly in CI.
 
 ## The basics
 

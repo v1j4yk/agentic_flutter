@@ -32,6 +32,7 @@ import 'package:agentic_llm/src/model/chat_model.dart';
 import 'package:agentic_llm/src/model/chat_request.dart';
 import 'package:agentic_llm/src/model/chat_response.dart';
 import 'package:agentic_llm/src/model/embedding_model.dart';
+import 'package:agentic_llm/src/model/model_directory.dart';
 import 'package:agentic_llm/src/model/model_info.dart';
 import 'package:agentic_llm/src/transport/http_transport.dart';
 import 'package:http/http.dart' as http;
@@ -39,19 +40,22 @@ import 'package:http/http.dart' as http;
 /// A chat model speaking Google's `generateContent` API.
 ///
 /// ```dart
-/// final gemini = GeminiChatModel(apiKey: key, model: 'gemini-2.5-flash');
+/// final gemini = GeminiChatModel(apiKey: key, model: 'gemini-3.8-flash');
 /// ```
-final class GeminiChatModel implements ChatModel {
+final class GeminiChatModel implements ChatModel, ModelDirectory {
   /// Creates an adapter.
   ///
-  /// The default is `gemini-2.5-flash`. The previous default,
-  /// `gemini-2.0-flash`, was retired by Google and now returns 404. Newer
-  /// models are served, but this is the one exercised end to end with this
-  /// adapter — streaming, tool calls and approval — so it is the one a default
-  /// can vouch for. Pass `model` for anything newer.
+  /// The default is `gemini-3.8-flash`, the current Flash model. Two earlier
+  /// defaults have now been outlived: `gemini-2.0-flash` was retired and
+  /// returns 404, and `gemini-2.5-flash` is still served but is no longer the
+  /// model Google points new work at.
+  ///
+  /// A default is a claim that a model exists and behaves, which is why
+  /// `tool/check_models.dart` asks each provider for its model list nightly:
+  /// the last two times this rotted, a user found out, not a test.
   GeminiChatModel({
     required String apiKey,
-    String model = 'gemini-2.5-flash',
+    String model = 'gemini-3.8-flash',
     Uri? baseUrl,
     Set<ModelCapability> capabilities = _defaultCapabilities,
     int? contextWindow,
@@ -200,6 +204,16 @@ final class GeminiChatModel implements ChatModel {
 
     if (!sawFinish) yield const ChatChunk.done();
   }
+
+  /// Lists the models this key may call, from `GET /models`.
+  ///
+  /// Google returns every model, not only the ones that can chat, and pages
+  /// the result. `raw['supportedGenerationMethods']` says what each one can
+  /// do — `generateContent` for chat, `embedContent` for embeddings — which is
+  /// the filter a picker wants.
+  @override
+  Future<List<ModelDescriptor>> listModels({AgenticContext? context}) =>
+      _listGeminiModels(_transport, context: context);
 
   @override
   Future<void> dispose() => _transport.dispose();
@@ -502,25 +516,33 @@ final class GeminiChatModel implements ChatModel {
 }
 
 /// An embedding model speaking Google's `embedContent` API.
-final class GeminiEmbeddingModel implements EmbeddingModel {
+final class GeminiEmbeddingModel implements EmbeddingModel, ModelDirectory {
   /// Creates an adapter.
   ///
-  /// The default model is `gemini-embedding-001`. Its predecessor,
-  /// `text-embedding-004`, was this default until Google retired it; requests
-  /// to it now return 404. Because an indexer records a failed document rather
-  /// than throwing, that failure surfaced as documents indexed into zero
-  /// passages, not as an error — so the default is kept current here rather
-  /// than left for each app to discover.
+  /// The default model is `gemini-embedding-2`, the current embedding model.
+  /// Two predecessors have already been outlived: `text-embedding-004` was
+  /// retired and returns 404, and `gemini-embedding-001` is deprecated and
+  /// text-only. Because an indexer records a failed document rather than
+  /// throwing, a retired model surfaced as documents indexed into zero
+  /// passages rather than as an error — which is the failure this default
+  /// exists to prevent.
   ///
-  /// [dimensions] is sent as `outputDimensionality`. `gemini-embedding-001`
-  /// produces 3072 by default and is trained to be truncated, so 768 keeps a
-  /// phone-sized index at a quarter of the memory. Truncated vectors are not
-  /// unit length: that is harmless for cosine similarity, the default metric
-  /// everywhere in the framework, but normalise them before using a dot-product
-  /// index.
+  /// **Changing this model invalidates an existing index.** Embedding spaces
+  /// are not comparable across models: vectors written by
+  /// `gemini-embedding-001` cannot be searched with `gemini-embedding-2`
+  /// queries, and the results will be plausible nonsense rather than an error.
+  /// Pass `model: 'gemini-embedding-001'` to keep an existing index working,
+  /// or re-embed every document.
+  ///
+  /// [dimensions] is sent as `outputDimensionality`. The model produces 3072
+  /// by default and is trained to be truncated, so 768 keeps a phone-sized
+  /// index at a quarter of the memory; 768, 1536 and 3072 are the sizes Google
+  /// recommends. Truncated vectors are not unit length: harmless for cosine
+  /// similarity, the default metric everywhere in the framework, but normalise
+  /// them before using a dot-product index.
   GeminiEmbeddingModel({
     required String apiKey,
-    String model = 'gemini-embedding-001',
+    String model = 'gemini-embedding-2',
     this.dimensions = 768,
     this.maxBatchSize = 100,
     Uri? baseUrl,
@@ -602,9 +624,56 @@ final class GeminiEmbeddingModel implements EmbeddingModel {
     EmbeddingPurpose.classification => 'CLASSIFICATION',
   };
 
+  /// Lists the models this key may call; see `GeminiChatModel.listModels`.
+  @override
+  Future<List<ModelDescriptor>> listModels({AgenticContext? context}) =>
+      _listGeminiModels(_transport, context: context);
+
   @override
   Future<void> dispose() => _transport.dispose();
 
   @override
   String toString() => 'GeminiEmbeddingModel(${info.qualifiedId})';
+}
+
+/// Reads Google's paginated model list.
+///
+/// Shared by both adapters because it is one endpoint: which model you asked
+/// through says nothing about what the account may call.
+Future<List<ModelDescriptor>> _listGeminiModels(
+  LlmHttpTransport transport, {
+  AgenticContext? context,
+}) async {
+  final models = <ModelDescriptor>[];
+  String? pageToken;
+  // Bounded rather than `while (true)`: a provider that always returns a page
+  // token should stop a loop, not spend a budget.
+  for (var page = 0; page < 20; page++) {
+    final json = await transport.getJson(
+      '/models',
+      query: <String, String>{'pageSize': '1000', 'pageToken': ?pageToken},
+      context: context,
+    );
+    final entries = json['models'];
+    if (entries is! List) break;
+    for (final entry in entries) {
+      if (entry is! Map<String, Object?>) continue;
+      final name = entry['name'];
+      if (name is! String) continue;
+      models.add(
+        ModelDescriptor(
+          // Google names models `models/gemini-3.8-flash`; the identifier a
+          // caller passes as `model` is the part after the prefix.
+          id: name.startsWith('models/') ? name.substring(7) : name,
+          provider: 'gemini',
+          displayName: entry['displayName'] as String?,
+          raw: entry,
+        ),
+      );
+    }
+    final next = json['nextPageToken'];
+    if (next is! String || next.isEmpty) break;
+    pageToken = next;
+  }
+  return models;
 }

@@ -85,6 +85,39 @@ final class LlmHttpTransport implements Disposable {
       operation: '$provider.$path',
     );
 
+    return _readJson(response);
+  }
+
+  /// Gets [path] and decodes the JSON response.
+  ///
+  /// The one read-only call a provider adapter needs: asking what models are
+  /// served. [query] is appended to the resolved URL, which is how pagination
+  /// cursors travel.
+  Future<JsonMap> getJson(
+    String path, {
+    Map<String, String> query = const <String, String>{},
+    AgenticContext? context,
+    Map<String, String> extraHeaders = const <String, String>{},
+  }) async {
+    _throwIfDisposed();
+    context?.throwIfCancelled();
+    final token = context?.cancellation ?? CancellationToken.none;
+
+    final url = _resolve(path);
+    final request = http.Request(
+      'GET',
+      query.isEmpty ? url : url.replace(queryParameters: query),
+    )..headers.addAll(_requestHeaders(extraHeaders));
+
+    final response = await token.race(
+      _send(request, path),
+      operation: '$provider.$path',
+    );
+
+    return _readJson(response);
+  }
+
+  JsonMap _readJson(http.Response response) {
     final text = utf8.decode(response.bodyBytes, allowMalformed: true);
     if (response.statusCode >= 400) {
       throw mapHttpFailure(

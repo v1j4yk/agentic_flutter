@@ -73,7 +73,7 @@ void main() {
       );
 
       final body = recorder.lastBody;
-      expect(body['model'], 'gpt-4o');
+      expect(body['model'], 'gpt-5.6');
       expect(body['temperature'], 0.2);
       expect(body['max_completion_tokens'], 256);
       expect(body['stop'], <String>['END']);
@@ -1158,10 +1158,11 @@ void main() {
     });
 
     test('embeddings default to a model Google still serves', () async {
-      // `text-embedding-004` was the default until it was retired and began
-      // returning 404. Inside an indexer that 404 is recorded per document,
-      // not thrown, so it showed up as notes "indexed" into zero passages.
-      // This pins the replacement and the size it is truncated to.
+      // Two defaults have been outlived here: `text-embedding-004` was retired
+      // and began returning 404, and `gemini-embedding-001` is deprecated.
+      // Inside an indexer a 404 is recorded per document, not thrown, so it
+      // showed up as notes "indexed" into zero passages. This pins the current
+      // model and the size it is truncated to.
       final (client, recorder) = respondingWith(<String, Object?>{
         'embeddings': <Object?>[
           <String, Object?>{'values': List<double>.filled(768, 0.1)},
@@ -1173,14 +1174,15 @@ void main() {
         'hello',
       ], purpose: EmbeddingPurpose.document);
 
-      expect(model.info.id, 'gemini-embedding-001');
+      expect(model.info.id, 'gemini-embedding-2');
       expect(model.info.id, isNot('text-embedding-004'));
+      expect(model.info.id, isNot('gemini-embedding-001'));
       expect(
         recorder.requests.last.url.path,
-        endsWith('/models/gemini-embedding-001:batchEmbedContents'),
+        endsWith('/models/gemini-embedding-2:batchEmbedContents'),
       );
       final request = recorder.lastBody.requireList('requests').single! as Map;
-      expect(request['model'], 'models/gemini-embedding-001');
+      expect(request['model'], 'models/gemini-embedding-2');
       expect(request['outputDimensionality'], 768);
       expect(embeddings.single.dimensions, model.dimensions);
     });

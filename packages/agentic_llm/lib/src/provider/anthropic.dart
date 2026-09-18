@@ -36,6 +36,7 @@ import 'package:agentic_llm/src/model/chat_chunk.dart';
 import 'package:agentic_llm/src/model/chat_model.dart';
 import 'package:agentic_llm/src/model/chat_request.dart';
 import 'package:agentic_llm/src/model/chat_response.dart';
+import 'package:agentic_llm/src/model/model_directory.dart';
 import 'package:agentic_llm/src/model/model_info.dart';
 import 'package:agentic_llm/src/transport/http_transport.dart';
 import 'package:http/http.dart' as http;
@@ -45,10 +46,10 @@ import 'package:http/http.dart' as http;
 /// ```dart
 /// final claude = AnthropicChatModel(
 ///   apiKey: key,
-///   model: 'claude-sonnet-4-20250514',
+///   model: 'claude-sonnet-5',
 /// );
 /// ```
-final class AnthropicChatModel implements ChatModel {
+final class AnthropicChatModel implements ChatModel, ModelDirectory {
   /// Creates an adapter.
   ///
   /// [defaultMaxTokens] is used when a request does not set
@@ -57,7 +58,7 @@ final class AnthropicChatModel implements ChatModel {
   /// failure than a slightly larger bill.
   AnthropicChatModel({
     required String apiKey,
-    String model = 'claude-sonnet-4-20250514',
+    String model = 'claude-sonnet-5',
     Uri? baseUrl,
     this.apiVersion = '2023-06-01',
     this.defaultMaxTokens = 4096,
@@ -260,6 +261,44 @@ final class AnthropicChatModel implements ChatModel {
         // Nothing to accumulate.
       }
     }
+  }
+
+  /// Lists the models this key may call, from `GET /models`.
+  ///
+  /// Anthropic pages the list, so this follows `has_more` to the end rather
+  /// than returning the first page and calling it the answer.
+  @override
+  Future<List<ModelDescriptor>> listModels({AgenticContext? context}) async {
+    final models = <ModelDescriptor>[];
+    String? after;
+    // Bounded rather than `while (true)`: a provider that always answers
+    // `has_more` should stop a loop, not spend a budget.
+    for (var page = 0; page < 20; page++) {
+      final json = await _transport.getJson(
+        '/models',
+        query: <String, String>{'limit': '1000', 'after_id': ?after},
+        context: context,
+      );
+      final data = json['data'];
+      if (data is! List) break;
+      for (final entry in data) {
+        if (entry is Map<String, Object?> && entry['id'] is String) {
+          models.add(
+            ModelDescriptor(
+              id: entry['id']! as String,
+              provider: 'anthropic',
+              displayName: entry['display_name'] as String?,
+              raw: entry,
+            ),
+          );
+        }
+      }
+      if (json['has_more'] != true) break;
+      final last = json['last_id'];
+      if (last is! String) break;
+      after = last;
+    }
+    return models;
   }
 
   @override

@@ -14,7 +14,7 @@
 /// server on `localhost:11434`.
 ///
 /// ```dart
-/// final gpt = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-4o');
+/// final gpt = OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-5.6');
 /// final local = OpenAiCompatibleChatModel.ollama(model: 'qwen2.5:7b');
 /// ```
 ///
@@ -32,12 +32,13 @@ import 'package:agentic_llm/src/model/chat_model.dart';
 import 'package:agentic_llm/src/model/chat_request.dart';
 import 'package:agentic_llm/src/model/chat_response.dart';
 import 'package:agentic_llm/src/model/embedding_model.dart';
+import 'package:agentic_llm/src/model/model_directory.dart';
 import 'package:agentic_llm/src/model/model_info.dart';
 import 'package:agentic_llm/src/transport/http_transport.dart';
 import 'package:http/http.dart' as http;
 
 /// A chat model speaking the OpenAI `/chat/completions` format.
-final class OpenAiCompatibleChatModel implements ChatModel {
+final class OpenAiCompatibleChatModel implements ChatModel, ModelDirectory {
   /// Creates an adapter against an arbitrary OpenAI-compatible endpoint.
   ///
   /// Declare [capabilities] honestly. The default is
@@ -79,9 +80,13 @@ final class OpenAiCompatibleChatModel implements ChatModel {
        );
 
   /// Creates an adapter for OpenAI itself.
+  ///
+  /// The default is the balanced model rather than the flagship: a default is
+  /// what someone gets before they have chosen, and that should not be the
+  /// most expensive option. Name [model] explicitly for anything else.
   factory OpenAiCompatibleChatModel.openAi({
     required String apiKey,
-    String model = 'gpt-4o',
+    String model = 'gpt-5.6',
     Uri? baseUrl,
     String? organization,
     ModelPricing? pricing,
@@ -99,9 +104,15 @@ final class OpenAiCompatibleChatModel implements ChatModel {
   );
 
   /// Creates an adapter for DeepSeek.
+  ///
+  /// [model] is required. DeepSeek renames its models between generations and
+  /// serves retired names through whatever replaced them, so a default here
+  /// would decide — silently, and differently over time — which model you pay
+  /// for. `deepseek-flash` and `deepseek-v4-pro` were the published names when
+  /// this was last checked; the provider's model list is the authority.
   factory OpenAiCompatibleChatModel.deepSeek({
     required String apiKey,
-    String model = 'deepseek-chat',
+    required String model,
     http.Client? client,
   }) => OpenAiCompatibleChatModel.custom(
     baseUrl: Uri.parse('https://api.deepseek.com/v1'),
@@ -112,9 +123,13 @@ final class OpenAiCompatibleChatModel implements ChatModel {
   );
 
   /// Creates an adapter for xAI's Grok.
+  ///
+  /// The default names a specific model rather than a `-latest` alias: xAI
+  /// publishes aliases for some families and not others, and an alias that
+  /// moves under you changes both price and behaviour without a code change.
   factory OpenAiCompatibleChatModel.grok({
     required String apiKey,
-    String model = 'grok-2-latest',
+    String model = 'grok-4.6',
     http.Client? client,
   }) => OpenAiCompatibleChatModel.custom(
     baseUrl: Uri.parse('https://api.x.ai/v1'),
@@ -126,9 +141,13 @@ final class OpenAiCompatibleChatModel implements ChatModel {
   );
 
   /// Creates an adapter for Mistral.
+  ///
+  /// [model] is required. Mistral publishes dated identifiers such as
+  /// `mistral-medium-2508` and retires the generation behind an alias without
+  /// changing the alias, so the only honest default is the one you chose.
   factory OpenAiCompatibleChatModel.mistral({
     required String apiKey,
-    String model = 'mistral-large-latest',
+    required String model,
     http.Client? client,
   }) => OpenAiCompatibleChatModel.custom(
     baseUrl: Uri.parse('https://api.mistral.ai/v1'),
@@ -238,6 +257,27 @@ final class OpenAiCompatibleChatModel implements ChatModel {
     if (!sawFinish) {
       yield const ChatChunk.done();
     }
+  }
+
+  /// Lists the models this endpoint serves, from `GET /models`.
+  ///
+  /// Every OpenAI-compatible server implements this, including Ollama and
+  /// llama.cpp, which is what makes a model picker work against a local
+  /// server as well as a hosted one.
+  @override
+  Future<List<ModelDescriptor>> listModels({AgenticContext? context}) async {
+    final json = await _transport.getJson('/models', context: context);
+    final data = json['data'];
+    if (data is! List) return const <ModelDescriptor>[];
+    return <ModelDescriptor>[
+      for (final entry in data)
+        if (entry is Map<String, Object?> && entry['id'] is String)
+          ModelDescriptor(
+            id: entry['id']! as String,
+            provider: info.provider,
+            raw: entry,
+          ),
+    ];
   }
 
   @override

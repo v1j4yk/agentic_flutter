@@ -126,6 +126,13 @@ melos:
       description: Print the provider capability matrix.
       run: cd packages/agentic_integration && dart run bin/audit.dart
 
+    models:check:
+      description: >-
+        Check every model identifier the framework ships against the list each
+        provider actually serves. Skips providers whose key is not set. Cheap:
+        one listing call each, no generation.
+      run: cd packages/agentic_integration && dart run bin/check_models.dart
+
     template:check:
       description: >-
         Generate a project from the template and compile it. The only thing
@@ -140,6 +147,13 @@ melos:
         Check the public API against the snapshots in api/. A diff there is an
         API change, which is the point of the file.
       run: dart run packages/agentic_benchmark/bin/api_snapshot.dart
+
+    skills:
+      description: >-
+        Check the Agent Skills bundled with each package: the packaging rules
+        `package:skills` enforces silently, and every framework name the skills
+        teach against the API snapshots in api/.
+      run: dart run tool/check_skills.dart
 
     api:write:
       description: >-
@@ -177,4 +191,5 @@ melos:
       description: The full local gate. Run this before opening a pull request.
       run: >-
         melos run format && melos run analyze && melos run test &&
-        melos run api && melos run fix:check && melos run analyze:flutter && melos run test:flutter
+        melos run api && melos run skills && melos run fix:check &&
+        melos run analyze:flutter && melos run test:flutter

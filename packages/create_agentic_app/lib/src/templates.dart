@@ -114,11 +114,11 @@ String _modelImport(TemplateProvider provider) => switch (provider) {
 
 String _modelConstruction(TemplateProvider provider) => switch (provider) {
   TemplateProvider.openai =>
-    "OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-4o-mini')",
+    "OpenAiCompatibleChatModel.openAi(apiKey: key, model: 'gpt-5.6-luna')",
   TemplateProvider.anthropic =>
     "AnthropicChatModel(apiKey: key, model: 'claude-3-5-haiku-latest')",
   TemplateProvider.gemini =>
-    "GeminiChatModel(apiKey: key, model: 'gemini-2.5-flash')",
+    "GeminiChatModel(apiKey: key, model: 'gemini-3.8-flash')",
   // A local model is addressed by name, not by key; `key` holds the model name.
   TemplateProvider.ollama => 'OpenAiCompatibleChatModel.ollama(model: key)',
 };

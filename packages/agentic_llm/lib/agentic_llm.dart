@@ -42,7 +42,8 @@ export 'src/middleware/chat_middleware.dart'
         FallbackChatModel,
         InMemoryChatCache,
         ObservableChatModel,
-        RetryingChatModel;
+        RetryingChatModel,
+        SwitchableChatModel;
 // --- Streaming ---------------------------------------------------------------
 export 'src/model/chat_chunk.dart'
     show ChatChunk, ChatChunkStream, ChatResponseBuilder, ToolCallDelta;
@@ -66,11 +67,20 @@ export 'src/model/chat_request.dart'
 export 'src/model/chat_response.dart' show ChatResponse, FinishReason;
 export 'src/model/embedding_model.dart'
     show Embedding, EmbeddingModel, EmbeddingModelOperations, EmbeddingPurpose;
+export 'src/model/model_directory.dart' show ModelDescriptor, ModelDirectory;
 export 'src/model/model_info.dart'
     show ModelCapabilities, ModelCapability, ModelInfo, ModelPricing;
 // --- Providers ---------------------------------------------------------------
 export 'src/provider/anthropic.dart' show AnthropicChatModel;
 export 'src/provider/gemini.dart' show GeminiChatModel, GeminiEmbeddingModel;
+export 'src/provider/model_names.dart'
+    show
+        AnthropicModels,
+        DeepSeekModels,
+        GeminiModels,
+        GrokModels,
+        MistralModels,
+        OpenAiModels;
 export 'src/provider/openai_compatible.dart'
     show OpenAiCompatibleChatModel, OpenAiCompatibleEmbeddingModel;
 // --- Transport ---------------------------------------------------------------
