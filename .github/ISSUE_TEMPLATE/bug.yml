@@ -1,0 +1,62 @@
+name: Bug report
+description: Something behaves differently from what it documents.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting. The two things that make a bug fixable here are a
+        minimal reproduction and the exact versions — an agent that "sometimes
+        loops" is usually a budget, a model change, or a tool description, and
+        those are only distinguishable with detail.
+
+        **Please redact API keys.** A provider request id (on
+        `ProviderException.requestId`) is enough to trace a call.
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      placeholder: agentic_agents 0.2.0
+    validations:
+      required: true
+  - type: input
+    id: sdk
+    attributes:
+      label: Dart / Flutter version
+      placeholder: Dart 3.11.0, Flutter 3.41.1
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Where it runs
+      options: [Android, iOS, macOS, Windows, Linux, Web, Dart VM / server]
+    validations:
+      required: true
+  - type: input
+    id: provider
+    attributes:
+      label: Provider and model, if one is involved
+      placeholder: gemini / gemini-3.8-flash
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected, and what happened
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >-
+        Ideally a test using FakeChatModel or a cassette, so it runs without a
+        key. Code, not a description of code.
+      render: dart
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Error, stack trace, or relevant events
+      description: Keys redacted.
+      render: text

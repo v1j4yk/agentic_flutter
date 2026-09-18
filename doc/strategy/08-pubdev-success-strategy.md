@@ -14,7 +14,7 @@ decides whether someone clicks *Like* or adds the package is the listing.
 | Lever | Current | Action | Effort |
 |---|---|---|---|
 | **Verified publisher** | none (`publisherId: null`) | Register a domain publisher (for example `agentic.dev`) and transfer all packages | 1 h |
-| **Keep 160 points** | only `agentic_core` scored in CI, threshold 20 | Run `pana` for every package on Linux in CI and fail below 160; re-check the four packages still pending analysis after 0.2.0 | 2 h |
+| **Keep 160 points** | already scored per package in CI, at a 150/160 bar | Nothing to build; re-check the four packages that were still pending pub.dev analysis after 0.2.0 | — |
 | **Description** (60–180 chars, shown in search) | good but inward-looking | Lead with the outcome and keywords people search: *"AI agents for Flutter: tool calling, human approval, MCP, RAG and memory, with budgets and offline tests."* | 1 h |
 | **Topics** (max 5) | `ai, agents, llm, agentic, workflow` on all | Vary per package so each appears in relevant topic pages: `mcp`, `rag`, `vector-search`, `openai`, `gemini`, `anthropic`, `chatbot`, `sqlite`, `testing`, `codegen`, `on-device` | 1 h |
 | **Screenshots** field | `agentic_flutter` only | Add to `agentic_workflow` (graph view), `agentic_rag` (citations), `agentic_test` (HTML report), `create_agentic_app` (generated app) | 3 h |

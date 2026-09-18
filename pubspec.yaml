@@ -155,6 +155,17 @@ melos:
         teach against the API snapshots in api/.
       run: dart run tool/check_skills.dart
 
+    llms:
+      description: >-
+        Check that llms.txt still describes the packages that exist. It is
+        generated, because hand-written it would say "eleven packages" two
+        releases from now — which is exactly what the README did.
+      run: dart run tool/write_llms_txt.dart --check
+
+    llms:write:
+      description: Regenerate llms.txt from the packages and their skills.
+      run: dart run tool/write_llms_txt.dart
+
     api:write:
       description: >-
         Record the current public API. The deliberate act that says the change
@@ -191,5 +202,6 @@ melos:
       description: The full local gate. Run this before opening a pull request.
       run: >-
         melos run format && melos run analyze && melos run test &&
-        melos run api && melos run skills && melos run fix:check &&
+        melos run api && melos run skills && melos run llms &&
+        melos run fix:check &&
         melos run analyze:flutter && melos run test:flutter

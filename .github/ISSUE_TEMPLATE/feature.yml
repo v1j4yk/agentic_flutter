@@ -1,0 +1,45 @@
+name: Feature request
+description: Something the framework should be able to do and cannot.
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The most useful requests describe the problem rather than the API. A
+        proposed API is welcome too, but the problem is what decides whether
+        this belongs here, in a package of your own, or nowhere.
+  - type: input
+    id: package
+    attributes:
+      label: Which package, or a new one
+      placeholder: agentic_workflow
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to build, and where does it stop?
+    validations:
+      required: true
+  - type: textarea
+    id: workaround
+    attributes:
+      label: What you do today instead
+      description: >-
+        If there is no workaround, say so — that is itself an argument for the
+        feature.
+  - type: textarea
+    id: api
+    attributes:
+      label: A sketch of the API, if you have one
+      render: dart
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope
+      options:
+        - label: >-
+            I have read doc/architecture.md and this fits the layering (a plugin
+            depends on one layer, not the whole framework).
+        - label: I would be willing to implement it.

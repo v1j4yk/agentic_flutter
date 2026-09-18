@@ -1,0 +1,46 @@
+# agentic — AI agents in Dart and Flutter
+
+> A framework for building agentic AI applications in Dart and Flutter: models, tools, agents, validated workflow graphs, memory, retrieval, the Model Context Protocol, on-device persistence, testing and chat widgets. Mobile-first: budgets, human approval and cancellation are built in rather than added later.
+
+Applications depend on `agentic_flutter`, which re-exports the rest. A plugin depends only on the layer it extends — a tool package needs `agentic_tools`, not the whole framework.
+
+## If you are an AI assistant helping someone use this
+
+These packages ship 35 Agent Skills covering their APIs. Install them into your own skills directory rather than inferring the API:
+
+```sh
+dart run skills@ get
+```
+
+They are also readable in the repository under `packages/<package>/skills/`. Each says when to use a thing, when not to, and the mistakes people make.
+
+## Packages
+
+- [agentic_agents](https://pub.dev/packages/agentic_agents) (0.2.0): A bounded tool-calling agent loop with budgets, sessions and streaming, plus a planner/executor and multi-agent delegation. Budgets are required, not optional. Skills: agentic-agents-budgets, agentic-agents-build-tool-calling-agent, agentic-agents-multi-agent-delegation, agentic-agents-sessions-and-history.
+- [agentic_core](https://pub.dev/packages/agentic_core) (0.2.0): Foundation of the agentic AI framework: messages, JSON Schema, typed errors, cancellation, retry, an event bus, logging and tracing. Pure Dart, with no provider knowledge. Skills: agentic-core-cancellation-and-context, agentic-core-errors-and-retry, agentic-core-tracing-and-events.
+- [agentic_flutter](https://pub.dev/packages/agentic_flutter) (0.2.0): Flutter bindings for the agentic AI framework: the umbrella package apps depend on, a lifecycle-bound runtime, device tools, secret storage and chat widgets. Skills: agentic-flutter-add-chat-agent, agentic-flutter-secrets-and-keys, agentic-flutter-tool-approval-ui, agentic-flutter-trace-panel.
+- [agentic_llm](https://pub.dev/packages/agentic_llm) (0.2.0): Provider-independent chat and embedding models with streaming, tool calling and structured output. Adapters for OpenAI-compatible APIs, Anthropic and Gemini. Skills: agentic-llm-choose-provider, agentic-llm-local-models, agentic-llm-middleware-retry-fallback-cache, agentic-llm-structured-output.
+- [agentic_mcp](https://pub.dev/packages/agentic_mcp) (0.2.0): A Model Context Protocol client and server for Dart. Remote MCP tools become ordinary agent tools, over stdio, HTTP or in-process transports. Skills: agentic-mcp-connect-to-server, agentic-mcp-expose-tools-as-server.
+- [agentic_memory](https://pub.dev/packages/agentic_memory) (0.2.0): Memory for AI agents: conversation, working, long-term and semantic stores, with keyword, embedding and hybrid recall, and summarising history strategies. Skills: agentic-memory-add-long-term-memory, agentic-memory-choose-recall-strategy.
+- [agentic_rag](https://pub.dev/packages/agentic_rag) (0.2.0): Retrieval-augmented generation for Dart: loading, chunking, dense and BM25 retrieval, rank fusion, re-ranking, cited answers and retrieval tools. Skills: agentic-rag-answer-with-citations, agentic-rag-index-documents, agentic-rag-tune-retrieval.
+- [agentic_sqlite](https://pub.dev/packages/agentic_sqlite) (0.2.0): On-device persistence for the agentic framework: SQLite-backed vector and memory stores that survive restarts, with the in-memory search behind them. Skills: agentic-sqlite-persist-everything.
+- [agentic_test](https://pub.dev/packages/agentic_test) (0.2.0): Test agents without paying for every run: record real model answers once and replay them offline, and score agent behaviour with repeatable evals. Skills: agentic-test-record-and-replay, agentic-test-write-evals.
+- [agentic_tools](https://pub.dev/packages/agentic_tools) (0.2.0): Tools an AI agent can call: a typed contract, a registry, argument validation and repair, human approval for anything destructive, and execution events. Skills: agentic-tools-approval-and-untrusted-content, agentic-tools-write-a-tool.
+- [agentic_tools_generator](https://pub.dev/packages/agentic_tools_generator) (0.2.0): Generates agentic_tools tools from annotated Dart functions: the JSON schema, argument reading and result conversion, checked at build time. Skills: agentic-tools-generator-annotate-functions, agentic-tools-generator-troubleshoot-build.
+- [agentic_vector](https://pub.dev/packages/agentic_vector) (0.2.0): A vector store port with metadata filtering, exact in-process search with snapshots, and a Qdrant adapter. Typed Float64List arithmetic throughout. Skills: agentic-vector-choose-store, agentic-vector-embedding-index.
+- [agentic_workflow](https://pub.dev/packages/agentic_workflow) (0.2.0): A typed graph engine for agent workflows: validation before execution, branching, parallelism, loops, budgets, human approval and resumable runs. Skills: agentic-workflow-build-graph, agentic-workflow-fix-validation-errors, agentic-workflow-human-approval-and-resume.
+- [create_agentic_app](https://pub.dev/packages/create_agentic_app) (0.2.0): Generates a working Flutter AI agent app: a chat screen, tools, human approval, a live trace panel, and an API key kept out of the source. Skills: create-agentic-app-scaffold.
+
+## Documentation
+
+- [README](https://github.com/v1j4yk/agentic_flutter#readme): what it is, with runnable code.
+- [Architecture](https://github.com/v1j4yk/agentic_flutter/blob/main/doc/architecture.md): the layering, the extension points, and why each decision was made.
+- [Migration to 0.2](https://github.com/v1j4yk/agentic_flutter/blob/main/doc/migration-0.2.md): breaking changes and how to migrate them.
+- [Contributing](https://github.com/v1j4yk/agentic_flutter/blob/main/CONTRIBUTING.md) and [AGENTS.md](https://github.com/v1j4yk/agentic_flutter/blob/main/AGENTS.md): how to work in the repository itself.
+- [Strategy](https://github.com/v1j4yk/agentic_flutter/tree/main/doc/strategy): the roadmap, the competitive analysis and the planned features.
+- API reference: every package on pub.dev, and `api/*.txt` in the repository for the exported names of each.
+
+## Internal packages (not published)
+
+- agentic_benchmark: Micro-benchmarks for the agentic framework, with baseline comparison so a performance regression shows up as a number rather than as a feeling.
+- agentic_integration: A conformance suite run against real providers. The same battery of behaviours applied to every adapter, so a provider changing what it does is caught here rather than by a user.

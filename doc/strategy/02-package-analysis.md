@@ -73,9 +73,9 @@ These apply to the whole repository and are not repeated per package.
 | X3 | **Front-door documentation is stale** | Root `README.md` says "Status: 0.1.1, early development"; root `CHANGELOG.md` only has an `[Unreleased]` 0.1.0 section; a hard-coded "1083 passing" test badge; `../recall/README.md` is the Flutter template boilerplate | Medium |
 | X4 | **No hosted docs site** — pub.dev API docs plus READMEs only; no guides, cookbook, or searchable concept pages | — | Medium |
 | X5 | **One test file per package** (e.g. 1,279 lines in one file for `agentic_agents`) — hard to navigate, slow to bisect, discourages contributors | `find test -name '*_test.dart'` → 1 in 10 packages | Medium |
-| X6 | **Single maintainer, no governance** — no `CODE_OF_CONDUCT`, `SECURITY.md`, issue templates, discussions, roadmap board, or second publisher | repository root | Medium (adoption-limiting for enterprises) |
+| X6 | **Single maintainer, thin governance** — `SECURITY.md`, `CODE_OF_CONDUCT.md` and issue templates now exist; still no second publisher, no discussions and no public roadmap board | repository root | Medium (adoption-limiting for enterprises) |
 | X7 | **0.x churn** — 0.1.1 → 0.1.2 → 0.2.0 with breaking changes in one day. Correct by semver, but it signals instability to evaluators | changelog | Low–Medium |
-| X8 | **CI scores only `agentic_core` with pana** at threshold 20 | `.github/workflows/ci.yaml` | Low |
+| X8 | ~~CI scores only `agentic_core` with pana~~ — **already fixed** in `182caa1`: every published package is scored, one job each, at a 150/160 bar | `.github/workflows/ci.yaml` | — |
 | X9 | **No OpenTelemetry export** — tracing is "OpenTelemetry-shaped" but nothing leaves the process (no OTLP exporter, no `gen_ai.*` semantic conventions, no metrics API) | `grep otlp` / `gen_ai.` / `class Counter` → 0 | Medium |
 | X10 | **Everything runs on the UI isolate** — no isolate offload for embedding math, BM25 scoring, chunking or JSON decoding of large payloads | `grep Isolate` → 0 in vector/rag/llm | Medium on low-end phones |
 

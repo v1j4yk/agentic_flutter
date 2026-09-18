@@ -49,6 +49,10 @@ jobs:
         # framework no longer exports, or a directory prefix `package:skills`
         # silently skips, both fail here rather than in a user's editor.
         run: dart run tool/check_skills.dart
+      - name: Check llms.txt
+        # Generated from the packages and their skills, so it cannot drift into
+        # describing a repository that no longer exists.
+        run: dart run tool/write_llms_txt.dart --check
 
   # ---------------------------------------------------------------------------
   # Unit tests for the pure-Dart packages across every platform we claim to

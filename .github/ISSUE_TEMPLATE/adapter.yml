@@ -1,0 +1,49 @@
+name: Adapter request
+description: Support for a provider, vector store, or other backend.
+labels: [enhancement, adapter]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Adapters are deliberately easy to write outside this repository: each
+        one depends on a single port, so `MyProviderChatModel implements
+        ChatModel` in your own package works with everything here and needs no
+        change to the framework.
+
+        This issue is still worth opening — it says what people want, and the
+        ports exist to be proven against real backends.
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind
+      options:
+        - Chat model provider
+        - Embedding model provider
+        - Vector store
+        - Memory store
+        - Document loader
+        - Transport or protocol
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: what
+    attributes:
+      label: Which one
+      placeholder: pgvector, Bedrock, Pinecone, …
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Anything unusual about its API
+      description: >-
+        Authentication, a wire format that differs structurally, filters it
+        cannot express. This is what decides the effort.
+  - type: checkboxes
+    id: help
+    attributes:
+      label: Help
+      options:
+        - label: I can test it against a real instance.
+        - label: I would be willing to write it.
