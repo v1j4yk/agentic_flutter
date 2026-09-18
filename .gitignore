@@ -36,3 +36,12 @@ pubspec_overrides.yaml
 
 # Scratch output of `melos run template:check`.
 .template_probe/
+
+# Written by `dart run skills@ get` when someone installs this repository's own
+# skills into their assistant. Generated per machine, and per agent, so it is
+# never the repository's business.
+.claude/skills/
+.agents/skills/
+.cursor/skills/
+.github/skills/
+.config/dart_skills/

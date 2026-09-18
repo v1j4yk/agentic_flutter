@@ -44,6 +44,11 @@ jobs:
         # against the Flutter SDK and is analysed in the `flutter` job; running
         # it here would fail on unresolved `package:flutter` imports.
         run: dart analyze --fatal-infos --fatal-warnings packages/agentic_core packages/agentic_tools packages/agentic_llm packages/agentic_agents packages/agentic_memory packages/agentic_workflow packages/agentic_vector packages/agentic_rag packages/agentic_mcp packages/agentic_sqlite packages/agentic_test packages/agentic_tools_generator packages/agentic_benchmark packages/agentic_integration packages/create_agentic_app
+      - name: Check bundled skills
+        # Skills are what an AI assistant reads instead of asking. A name the
+        # framework no longer exports, or a directory prefix `package:skills`
+        # silently skips, both fail here rather than in a user's editor.
+        run: dart run tool/check_skills.dart
 
   # ---------------------------------------------------------------------------
   # Unit tests for the pure-Dart packages across every platform we claim to
