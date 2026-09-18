@@ -443,7 +443,8 @@ String _basename(String path) =>
 /// cannot be checked against the framework's API snapshots.
 const Set<String> _external = <String>{
   // Flutter framework, and packages an example tells the reader to add
-  'AppBar', 'BuildContext', 'ChangeNotifier', 'Colors', 'EdgeInsets',
+  'AppBar', 'AppLifecycleState', 'BuildContext', 'ChangeNotifier', 'Colors',
+  'EdgeInsets',
   'FlutterSecureStorage', 'GlobalKey', 'Key', 'MaterialApp', 'NavigatorState',
   'Scaffold', 'State', 'StatefulWidget', 'StatelessWidget', 'Text', 'ThemeData',
   'Widget', 'WidgetsBinding',

@@ -27,6 +27,7 @@ workspace:
   - packages/agentic_rag
   - packages/agentic_mcp
   - packages/agentic_sqlite
+  - packages/agentic_otel
   - packages/agentic_test
   - packages/agentic_tools_generator
   - packages/agentic_benchmark

@@ -6,7 +6,7 @@ Applications depend on `agentic_flutter`, which re-exports the rest. A plugin de
 
 ## If you are an AI assistant helping someone use this
 
-These packages ship 35 Agent Skills covering their APIs. Install them into your own skills directory rather than inferring the API:
+These packages ship 36 Agent Skills covering their APIs. Install them into your own skills directory rather than inferring the API:
 
 ```sh
 dart run skills@ get
@@ -22,6 +22,7 @@ They are also readable in the repository under `packages/<package>/skills/`. Eac
 - [agentic_llm](https://pub.dev/packages/agentic_llm) (0.2.0): Provider-independent chat and embedding models with streaming, tool calling and structured output. Adapters for OpenAI-compatible APIs, Anthropic and Gemini. Skills: agentic-llm-choose-provider, agentic-llm-local-models, agentic-llm-middleware-retry-fallback-cache, agentic-llm-structured-output.
 - [agentic_mcp](https://pub.dev/packages/agentic_mcp) (0.2.0): A Model Context Protocol client and server for Dart. Remote MCP tools become ordinary agent tools, over stdio, HTTP or in-process transports. Skills: agentic-mcp-connect-to-server, agentic-mcp-expose-tools-as-server.
 - [agentic_memory](https://pub.dev/packages/agentic_memory) (0.2.0): Memory for AI agents: conversation, working, long-term and semantic stores, with keyword, embedding and hybrid recall, and summarising history strategies. Skills: agentic-memory-add-long-term-memory, agentic-memory-choose-recall-strategy.
+- [agentic_otel](https://pub.dev/packages/agentic_otel) (0.2.0): OpenTelemetry export for the agentic framework: agent, model and tool spans sent over OTLP to any backend, with the GenAI semantic conventions. Skills: agentic-otel-export-traces.
 - [agentic_rag](https://pub.dev/packages/agentic_rag) (0.2.0): Retrieval-augmented generation for Dart: loading, chunking, dense and BM25 retrieval, rank fusion, re-ranking, cited answers and retrieval tools. Skills: agentic-rag-answer-with-citations, agentic-rag-index-documents, agentic-rag-tune-retrieval.
 - [agentic_sqlite](https://pub.dev/packages/agentic_sqlite) (0.2.0): On-device persistence for the agentic framework: SQLite-backed vector and memory stores that survive restarts, with the in-memory search behind them. Skills: agentic-sqlite-persist-everything.
 - [agentic_test](https://pub.dev/packages/agentic_test) (0.2.0): Test agents without paying for every run: record real model answers once and replay them offline, and score agent behaviour with repeatable evals. Skills: agentic-test-record-and-replay, agentic-test-write-evals.
