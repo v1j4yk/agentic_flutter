@@ -9,7 +9,7 @@ the next launch starts empty. This package is the fix.
 
 ```yaml
 dependencies:
-  agentic_sqlite: ^0.2.0
+  agentic_sqlite: ^0.3.0
 ```
 
 ```dart

@@ -11,7 +11,7 @@ plain decorators.
 
 ```yaml
 dependencies:
-  agentic_llm: ^0.2.0
+  agentic_llm: ^0.3.0
 ```
 
 ## Providers

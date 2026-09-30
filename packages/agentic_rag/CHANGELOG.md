@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.1
+
+- Updated package documentation for the published 0.3.x release line.
+
 ## 0.3.0
 
 - Fixed empty and single-result reranker candidate handling.

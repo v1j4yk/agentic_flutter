@@ -12,12 +12,12 @@ build instead.
 
 ```yaml
 dependencies:
-  agentic_tools: ^0.2.0
-  agentic_core: ^0.2.0
+  agentic_tools: ^0.3.0
+  agentic_core: ^0.3.0
 
 dev_dependencies:
   build_runner: ^2.16.1
-  agentic_tools_generator: ^0.2.0
+  agentic_tools_generator: ^0.3.0
 ```
 
 ## A function

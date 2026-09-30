@@ -5,7 +5,7 @@ Agent, model and tool spans, sent over OTLP to any backend that speaks it.
 
 ```yaml
 dependencies:
-  agentic_otel: ^0.2.0
+  agentic_otel: ^0.3.0
 ```
 
 ## Why
