@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Published with the 0.3.0 framework release. No additional public API changes.
+
 ## 0.2.0
 
 - `ToolCallingAgent(untrustedContentPolicy:)`, passed to its executor.

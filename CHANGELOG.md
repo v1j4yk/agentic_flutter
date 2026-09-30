@@ -8,7 +8,7 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 Until 1.0.0, minor versions may contain breaking changes; they will always be
 listed here.
 
-## [Unreleased]
+## [0.3.0]
 
 The plan for 0.3 and beyond is in [`doc/strategy/`](doc/strategy/README.md); the
 README carries the short version.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Published with the 0.3.0 framework release. No additional public API changes.
+
 ## 0.2.0
 
 - Released with the rest of the framework at 0.2.0, which it now

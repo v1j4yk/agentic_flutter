@@ -2,7 +2,7 @@ name: agentic_otel
 description: >-
   OpenTelemetry export for the agentic framework: agent, model and tool spans
   sent over OTLP to any backend, with the GenAI semantic conventions.
-version: 0.2.0
+version: 0.3.0
 repository: https://github.com/v1j4yk/agentic_flutter
 issue_tracker: https://github.com/v1j4yk/agentic_flutter/issues
 documentation: https://github.com/v1j4yk/agentic_flutter/blob/main/packages/agentic_otel/README.md
@@ -19,7 +19,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.2.0
+  agentic_core: ^0.3.0
   # OTLP over HTTP with a JSON body: no protobuf dependency, no code
   # generation, and every collector accepts it. The binary encoding is smaller
   # on the wire, which matters for a fleet of servers and not for one phone.

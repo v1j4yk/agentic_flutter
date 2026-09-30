@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Fixed empty and single-result reranker candidate handling.
+
 ## 0.2.0
 
 - `searchTool` and `answeringTool` return untrusted content: their passages come

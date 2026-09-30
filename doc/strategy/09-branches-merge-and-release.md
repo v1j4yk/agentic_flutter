@@ -1,7 +1,9 @@
-# Phase 9 — The 0.3 branches: what they are, how to merge, how to publish
+# Phase 9 — The 0.3 branches: what they were, how they merged, how to publish
 
-Written 2026-09-18. Everything below is committed locally and **nothing is
-pushed**. `main` is still at `182caa1` (0.2.0, released 2026-09-17).
+Updated 2026-10-01. The 0.3 development branches have been integrated into
+`main`, pushed to `origin`, and followed by a small RAG fix. `main` is at
+`f0b5149`; package versions remain `0.2.0` until the release preparation is
+complete.
 
 ## 9.1 The commits
 
@@ -52,14 +54,14 @@ The other default changes (`gpt-4o` → `gpt-5.6`, `claude-sonnet-4-…` →
 model — and which price — a caller gets by default. They belong in the release
 notes at the top, not in a bullet list halfway down.
 
-## 9.3 How to merge
+## 9.3 How the branches merged
 
-**The branches are stacked, not parallel.** Each was cut from the previous
-tip, so `feat/agentic-otel` contains all eight commits and the others contain a
-prefix of them:
+**The branches were stacked, not parallel.** Each was cut from the previous
+tip. They have now been merged into `main` and pushed; the commands below are
+historical guidance only.
 
 ```
-main (182caa1)
+main (f0b5149)
   └── 60734a4 → 68c4f6b → 29d9b35 → 3dc1b13   feature/0.3-skills-and-models
                                        └── 47c57a5   chore/0.3-governance
                                              └── 7dfd7a7   feat/eval-trajectory-and-reporters
@@ -67,7 +69,7 @@ main (182caa1)
                                                          └── d23f337   feat/agentic-otel
 ```
 
-### Option A — merge the tip, once (simplest)
+### Historical Option A — merge the tip, once (simplest)
 
 If the whole set is going in, only the last branch needs merging; it already
 contains the rest.
@@ -85,7 +87,7 @@ Verify before merging, not after:
 melos run verify        # format, analyze, test, api, skills, llms, fix, flutter
 ```
 
-### Option B — merge in order, one pull request each
+### Historical Option B — merge in order, one pull request each
 
 For review, or to keep the history legible on GitHub. Merge **in this order**;
 any other order conflicts, because each branch's base is the one above it.
@@ -106,7 +108,7 @@ one's base to the previous branch rather than to `main`. GitHub will then show
 only that branch's own diff, and re-target each to `main` automatically as the
 one before it merges.
 
-### Option C — take some and not others
+### Historical Option C — take some and not others
 
 Every commit is independent in content, even though the branches are stacked, so
 cherry-picking works — with one exception worth knowing:
@@ -119,14 +121,12 @@ cherry-picking works — with one exception worth knowing:
 | Just tracing | `4db0c3c` | independent |
 | Just `agentic_otel` | `d23f337` | **depends on `4db0c3c`** in spirit: it exports spans, and the README documents propagation added there |
 
-### Before any merge
+### Current state
 
-- [ ] `melos run verify` is green on the branch being merged.
-- [ ] `packages/agentic_flutter/example/pubspec.lock` is still uncommitted —
-      it is an unowned working-tree change and has stayed out of all eight
-      commits.
-- [ ] No `.claude/`, `.config/` or `.template_probe/` directories crept in;
-      they are ignored, but `git add -A` has caught the lockfile twice.
+- [x] The development branches are merged into `main`.
+- [x] `main` is pushed to `origin/main`.
+- [ ] Commit and push this strategy-document update.
+- [ ] Complete the 0.3.0 release preparation below before publishing.
 
 ## 9.4 Publishing order
 
@@ -138,7 +138,9 @@ dart run tool/release.dart --version=0.3.0              # check only
 dart run tool/release.dart --version=0.3.0 --publish    # irreversible
 ```
 
-The order it produces today, with `agentic_otel` in it (verified 2026-09-18):
+The order it computes from the dependency graph is authoritative. The current
+release set contains 16 publishable packages; `agentic_benchmark` and
+`agentic_integration` remain `publish_to: none`.
 
 | # | Package | Depends on |
 |---|---|---|
@@ -156,15 +158,15 @@ The order it produces today, with `agentic_otel` in it (verified 2026-09-18):
 | 12 | `agentic_sqlite` | agents, core, memory, vector, workflow |
 | 13 | `agentic_test` | agents, core, llm |
 | 14 | `agentic_tools_generator` | analyzer, build, source_gen |
-| 15 | `create_agentic_app` | — (template only) |
+| 16 | `create_agentic_app` | — (template only) |
 
 `agentic_otel` only needs `agentic_core`, so it could publish as early as
 position 2; the tool places it where the topological sort happens to put it,
 which is fine — the constraint is that nothing publishes before what it depends
 on.
 
-`agentic_benchmark` and `agentic_integration` are `publish_to: none` and are
-not in the list.
+The exact order should always come from `tool/release.dart`; do not maintain a
+second hand-written order in this document.
 
 ### Rules that have already cost time once
 
@@ -178,7 +180,7 @@ not in the list.
 3. **After publishing, the pub cache lies.** `dart pub get` may say a
    just-published version "doesn't match any versions". Delete
    `~/AppData/Local/Pub/Cache/hosted/pub.dev/.cache/<pkg>-versions.json`.
-4. **`agentic_sqlite`'s dry run is flaky** when 15 packages are checked in a
+4. **`agentic_sqlite`'s dry run is flaky** when 16 packages are checked in a
    row — its build hook compiles SQLite mid-run. It failed once and passed on
    an immediate re-run with no change. Re-run before investigating.
 5. **`--allow-warnings`** exists for the warnings that are not defects (a new
@@ -190,7 +192,7 @@ Not blockers for merging; blockers for publishing.
 
 | # | Task | Why |
 |---|---|---|
-| 1 | Bump all 15 versions to `0.3.0` and the sibling constraints to `^0.3.0` | The tool checks this; a package at 0.3.0 depending on `^0.2.0` resolves users onto a combination nobody tested |
+| 1 | Bump all 16 versions to `0.3.0` and the sibling constraints to `^0.3.0` | The tool checks this; a package at 0.3.0 depending on `^0.2.0` resolves users onto a combination nobody tested |
 | 2 | Write `doc/migration-0.3.md` | Three breaking changes, one of which (the embedding model) fails silently |
 | 3 | Roll each package's `## Unreleased` section into `## 0.3.0` | pub.dev shows the changelog; "Unreleased" on a published version is wrong |
 | 4 | Root `CHANGELOG.md`: same | — |

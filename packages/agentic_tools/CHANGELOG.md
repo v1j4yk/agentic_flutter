@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.3.0
+
+- Published with the 0.3.0 framework release. No additional public API changes.
+
 ## 0.2.0
 
 - A call denied because no approval handler is configured now tells the model

@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.3.0
 
 - The generated app renders answers as Markdown, since that is what models
   write. It is one line, and the comment beside it says how to change it.
