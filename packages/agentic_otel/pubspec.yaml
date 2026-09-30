@@ -19,7 +19,7 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.3.1
+  agentic_core: ^0.3.0
   # OTLP over HTTP with a JSON body: no protobuf dependency, no code
   # generation, and every collector accepts it. The binary encoding is smaller
   # on the wire, which matters for a fleet of servers and not for one phone.

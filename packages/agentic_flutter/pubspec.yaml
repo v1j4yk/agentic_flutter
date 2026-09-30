@@ -41,15 +41,15 @@ environment:
   flutter: ">=3.41.0"
 
 dependencies:
-  agentic_agents: ^0.3.1
-  agentic_core: ^0.3.1
-  agentic_llm: ^0.3.1
-  agentic_mcp: ^0.3.1
-  agentic_memory: ^0.3.1
-  agentic_rag: ^0.3.1
-  agentic_tools: ^0.3.1
-  agentic_vector: ^0.3.1
-  agentic_workflow: ^0.3.1
+  agentic_agents: ^0.3.0
+  agentic_core: ^0.3.0
+  agentic_llm: ^0.3.0
+  agentic_mcp: ^0.3.0
+  agentic_memory: ^0.3.0
+  agentic_rag: ^0.3.0
+  agentic_tools: ^0.3.0
+  agentic_vector: ^0.3.0
+  agentic_workflow: ^0.3.0
   flutter:
     sdk: flutter
   # Floored at what we actually use (`@immutable`, `@protected`,

@@ -18,10 +18,10 @@ metadata:
 
 ```yaml
 dependencies:
-  agentic_tools: ^0.2.0
+  agentic_tools: ^0.3.0
 
 dev_dependencies:
-  agentic_tools_generator: ^0.2.0
+  agentic_tools_generator: ^0.3.0
   build_runner: ^2.4.0
 ```
 

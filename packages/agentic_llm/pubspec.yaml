@@ -20,12 +20,12 @@ environment:
 resolution: workspace
 
 dependencies:
-  agentic_core: ^0.3.1
+  agentic_core: ^0.3.0
   # The tool vocabulary is not optional for a modern model abstraction: a
   # `ChatRequest` has to be able to carry the tools the model may call. This
   # dependency points strictly downward — `agentic_tools` knows nothing about
   # models — so the layering stays acyclic.
-  agentic_tools: ^0.3.1
+  agentic_tools: ^0.3.0
   http: ^1.6.0
   # Floored at what we actually use (`@immutable`, `@protected`,
   # `@visibleForTesting`) rather than at the newest release. The Flutter SDK
