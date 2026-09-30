@@ -1040,6 +1040,19 @@ void main() {
       expect(kept.map((r) => r.id), <String>['a', 'a-copy']);
     });
 
+    test('restamps a single result and honours topK', () async {
+      final reranker = MmrReranker(vectorOf: (_) => <double>[1, 0]);
+      final result = RetrievedChunk(chunk: chunkOf('a'), score: 0.9, rank: 7);
+
+      final kept = await reranker.rerank('q', <RetrievedChunk>[result]);
+      expect(kept.single.rank, 0);
+      expect(kept.single.retriever, 'mmr');
+      expect(
+        await reranker.rerank('q', <RetrievedChunk>[result], topK: 0),
+        isEmpty,
+      );
+    });
+
     test('it says so when the vectors it needs are missing', () async {
       final reranker = MmrReranker(vectorOf: (_) => null);
       await expectLater(

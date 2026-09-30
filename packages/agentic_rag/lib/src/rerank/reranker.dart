@@ -85,7 +85,9 @@ final class MmrReranker implements Reranker {
     int topK = 4,
     AgenticContext? context,
   }) async {
-    if (results.length <= 1) return results;
+    if (results.isEmpty || topK <= 0) {
+      return const <RetrievedChunk>[];
+    }
 
     final vectors = <String, List<double>>{};
     for (final result in results) {
